@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.market.dal.mapper.OrderMapper">
+
+    <resultMap id="BaseResultMap" type="com.market.dal.entity.Order">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="user_id" property="userId"/>
+        <result column="shipping_name" property="shippingName"/>
+        <result column="shipping_phone" property="shippingPhone"/>
+        <result column="shipping_address" property="shippingAddress"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="payment" property="payment"/>
+        <result column="payment_type" property="paymentType"/>
+        <result column="payment_trade_no" property="paymentTradeNo"/>
+        <result column="status" property="status"/>
+        <result column="payment_time" property="paymentTime"/>
+        <result column="send_time" property="sendTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="close_time" property="closeTime"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        id, order_no, user_id, shipping_name, shipping_phone, shipping_address,
+        total_price, payment, payment_type, payment_trade_no, status,
+        payment_time, send_time, end_time, close_time, remark,
+        create_time, update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.market.dal.entity.Order"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `order` (order_no, user_id, shipping_name, shipping_phone,
+                             shipping_address, total_price, payment, payment_type,
+                             payment_trade_no, status, payment_time, send_time,
+                             end_time, close_time, remark, create_time, update_time)
+        VALUES (#{orderNo}, #{userId}, #{shippingName}, #{shippingPhone},
+                #{shippingAddress}, #{totalPrice}, #{payment}, #{paymentType},
+                #{paymentTradeNo}, #{status}, #{paymentTime}, #{sendTime},
+                #{endTime}, #{closeTime}, #{remark}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="selectByOrderNo" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM `order`
+        WHERE order_no = #{orderNo}
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM `order`
+        WHERE user_id = #{userId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+        <if test="offset != null and pageSize != null and pageSize > 0">
+            LIMIT #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="countByUserId" resultType="long">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE user_id = #{userId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <update id="updateStatus">
+        UPDATE `order`
+        SET status = #{status},
+            update_time = NOW()
+            <if test="status == 20">
+                , payment_time = NOW()
+            </if>
+            <if test="status == 40">
+                , send_time = NOW()
+            </if>
+            <if test="status == 50">
+                , end_time = NOW()
+            </if>
+            <if test="status == -1">
+                , close_time = NOW()
+            </if>
+        WHERE order_no = #{orderNo}
+    </update>
+
+    <update id="updatePayInfo">
+        UPDATE `order`
+        SET payment_type = #{paymentType},
+            payment_trade_no = #{paymentTradeNo},
+            update_time = NOW()
+        WHERE order_no = #{orderNo}
+    </update>
+
+    <select id="selectUnpaidBeforeDeadline" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM `order`
+        WHERE status = #{status}
+          AND create_time &lt; #{deadline}
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByCondition" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM `order`
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                AND order_no = #{orderNo}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="startTime != null">
+                AND create_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND create_time &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="offset != null and pageSize != null and pageSize > 0">
+            LIMIT #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(1)
+        FROM `order`
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                AND order_no = #{orderNo}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="startTime != null">
+                AND create_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND create_time &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <select id="countTodayOrders" resultType="long">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE create_time &gt;= CURDATE()
+    </select>
+
+    <select id="sumTodayRevenue" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(payment), 0)
+        FROM `order`
+        WHERE DATE(create_time) = CURDATE()
+    </select>
+
+    <!-- Note: countTodayNewUsers delegates to the user table -->
+    <select id="countTodayNewUsers" resultType="long">
+        SELECT COUNT(1)
+        FROM user
+        WHERE DATE(create_time) = CURDATE()
+    </select>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE status = #{status}
+    </select>
+
+</mapper>

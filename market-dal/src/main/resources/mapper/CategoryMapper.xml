@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.market.dal.mapper.CategoryMapper">
+
+    <resultMap id="BaseResultMap" type="com.market.dal.entity.Category">
+        <id column="id" property="id"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="name" property="name"/>
+        <result column="level" property="level"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="icon" property="icon"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        id, parent_id, name, level, sort_order, icon, status, create_time, update_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM category
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectAllByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM category
+        WHERE status = #{status}
+        ORDER BY sort_order
+    </select>
+
+    <select id="selectByParentId" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM category
+        WHERE parent_id = #{parentId}
+        ORDER BY sort_order
+    </select>
+
+    <insert id="insert" parameterType="com.market.dal.entity.Category"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO category (parent_id, name, level, sort_order, icon, status,
+                              create_time, update_time)
+        VALUES (#{parentId}, #{name}, #{level}, #{sortOrder}, #{icon}, #{status},
+                #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="updateById" parameterType="com.market.dal.entity.Category">
+        UPDATE category
+        <set>
+            <if test="parentId != null">
+                parent_id = #{parentId},
+            </if>
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="level != null">
+                level = #{level},
+            </if>
+            <if test="sortOrder != null">
+                sort_order = #{sortOrder},
+            </if>
+            <if test="icon != null and icon != ''">
+                icon = #{icon},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM category
+        WHERE id = #{id}
+    </delete>
+
+</mapper>

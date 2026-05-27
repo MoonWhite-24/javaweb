@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.market.dal.mapper.SeckillProductMapper">
+
+    <resultMap id="BaseResultMap" type="com.market.dal.entity.SeckillProduct">
+        <id column="id" property="id"/>
+        <result column="product_id" property="productId"/>
+        <result column="seckill_price" property="seckillPrice"/>
+        <result column="stock_count" property="stockCount"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        id, product_id, seckill_price, stock_count, start_time, end_time,
+        status, create_time, update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.market.dal.entity.SeckillProduct"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO seckill_product (product_id, seckill_price, stock_count,
+                                     start_time, end_time, status,
+                                     create_time, update_time)
+        VALUES (#{productId}, #{seckillPrice}, #{stockCount},
+                #{startTime}, #{endTime}, #{status},
+                #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="updateById" parameterType="com.market.dal.entity.SeckillProduct">
+        UPDATE seckill_product
+        <set>
+            <if test="productId != null">
+                product_id = #{productId},
+            </if>
+            <if test="seckillPrice != null">
+                seckill_price = #{seckillPrice},
+            </if>
+            <if test="stockCount != null">
+                stock_count = #{stockCount},
+            </if>
+            <if test="startTime != null">
+                start_time = #{startTime},
+            </if>
+            <if test="endTime != null">
+                end_time = #{endTime},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM seckill_product
+        <where>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="offset != null and pageSize != null and pageSize > 0">
+            LIMIT #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1)
+        FROM seckill_product
+        <where>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM seckill_product
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectActiveNow" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM seckill_product
+        WHERE status = 1
+          AND start_time &lt;= NOW()
+          AND end_time &gt; NOW()
+    </select>
+
+    <update id="updateStatus">
+        UPDATE seckill_product
+        SET status = #{status},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM seckill_product
+        WHERE id = #{id}
+    </delete>
+
+</mapper>

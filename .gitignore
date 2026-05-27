@@ -1,0 +1,29 @@
+# Maven
+target/
+*.jar
+!market-boot.jar
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Env
+.env
+.env.local
+
+# Jenkins
+.jenkins/
+workspace/

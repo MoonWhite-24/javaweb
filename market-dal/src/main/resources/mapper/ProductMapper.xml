@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.market.dal.mapper.ProductMapper">
+
+    <resultMap id="BaseResultMap" type="com.market.dal.entity.Product">
+        <id column="id" property="id"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="name" property="name"/>
+        <result column="subtitle" property="subtitle"/>
+        <result column="main_image" property="mainImage"/>
+        <result column="sub_images" property="subImages"/>
+        <result column="detail" property="detail"/>
+        <result column="price" property="price"/>
+        <result column="stock" property="stock"/>
+        <result column="sales" property="sales"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        id, category_id, name, subtitle, main_image, sub_images, detail,
+        price, stock, sales, status, create_time, update_time
+    </sql>
+
+    <sql id="WhereCondition">
+        <where>
+            <if test="categoryId != null">
+                AND category_id = #{categoryId}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </sql>
+
+    <insert id="insert" parameterType="com.market.dal.entity.Product"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO product (category_id, name, subtitle, main_image, sub_images,
+                             detail, price, stock, sales, status, create_time, update_time)
+        VALUES (#{categoryId}, #{name}, #{subtitle}, #{mainImage}, #{subImages},
+                #{detail}, #{price}, #{stock}, #{sales}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="updateById" parameterType="com.market.dal.entity.Product">
+        UPDATE product
+        <set>
+            <if test="categoryId != null">
+                category_id = #{categoryId},
+            </if>
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="subtitle != null and subtitle != ''">
+                subtitle = #{subtitle},
+            </if>
+            <if test="mainImage != null and mainImage != ''">
+                main_image = #{mainImage},
+            </if>
+            <if test="subImages != null and subImages != ''">
+                sub_images = #{subImages},
+            </if>
+            <if test="detail != null and detail != ''">
+                detail = #{detail},
+            </if>
+            <if test="price != null">
+                price = #{price},
+            </if>
+            <if test="stock != null">
+                stock = #{stock},
+            </if>
+            <if test="sales != null">
+                sales = #{sales},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM product
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM product
+        <include refid="WhereCondition"/>
+        <choose>
+            <when test="orderBy == 'price_asc'">
+                ORDER BY price ASC
+            </when>
+            <when test="orderBy == 'price_desc'">
+                ORDER BY price DESC
+            </when>
+            <when test="orderBy == 'sales_desc'">
+                ORDER BY sales DESC
+            </when>
+            <otherwise>
+                ORDER BY id DESC
+            </otherwise>
+        </choose>
+        <if test="offset != null and pageSize != null and pageSize > 0">
+            LIMIT #{offset}, #{pageSize}
+        </if>
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1)
+        FROM product
+        <include refid="WhereCondition"/>
+    </select>
+
+    <update id="updateStatus">
+        UPDATE product
+        SET status = #{status},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStock">
+        UPDATE product
+        SET stock = stock + #{delta},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateSales">
+        UPDATE product
+        SET sales = sales + #{delta},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectHot" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM product
+        WHERE status = 1
+        ORDER BY sales DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByIds" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM product
+        WHERE id IN
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+</mapper>

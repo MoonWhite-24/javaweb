@@ -1,0 +1,191 @@
+package com.market.service.impl;
+
+import com.market.common.constant.KafkaTopic;
+import com.market.common.constant.OrderStatusEnum;
+import com.market.common.constant.RedisKeyPrefix;
+import com.market.common.exception.BusinessException;
+import com.market.common.model.PageResult;
+import com.market.common.util.JsonUtil;
+import com.market.dal.entity.CartItem;
+import com.market.dal.entity.Order;
+import com.market.dal.entity.OrderItem;
+import com.market.dal.mapper.OrderItemMapper;
+import com.market.dal.mapper.OrderMapper;
+import com.market.service.OrderService;
+import com.market.service.impl.redis.RedisDistributedLock;
+import com.market.service.impl.snowflake.SnowflakeIdGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
+
+    @Autowired
+    private OrderMapper orderMapper;
+    @Autowired
+    private OrderItemMapper orderItemMapper;
+    @Autowired
+    private SnowflakeIdGenerator idGenerator;
+    @Autowired
+    private RedisDistributedLock lock;
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    @Override
+    @Transactional
+    public Long createOrder(Long userId, Long shippingAddressId, List<CartItem> items) {
+        String lockKey = RedisKeyPrefix.LOCK_ORDER_CREATE + userId;
+        String lockValue = UUID.randomUUID().toString();
+
+        if (!lock.tryLock(lockKey, lockValue, 10, TimeUnit.SECONDS)) {
+            throw new BusinessException("上一笔订单正在处理中，请稍候...");
+        }
+
+        try {
+            List<CartItem> checkedItems = items.stream()
+                    .filter(CartItem::isChecked)
+                    .collect(Collectors.toList());
+
+            if (checkedItems.isEmpty()) {
+                throw new BusinessException("请选择要下单的商品");
+            }
+
+            long orderNo = idGenerator.nextId();
+            BigDecimal totalPrice = checkedItems.stream()
+                    .map(CartItem::getSubtotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            Order order = new Order();
+            order.setOrderNo(orderNo);
+            order.setUserId(userId);
+            order.setTotalPrice(totalPrice);
+            order.setStatus(OrderStatusEnum.UNPAID.getCode());
+            order.setPaymentType(1);
+            order.setCreateTime(java.time.LocalDateTime.now());
+            order.setUpdateTime(java.time.LocalDateTime.now());
+            orderMapper.insert(order);
+
+            List<OrderItem> orderItems = checkedItems.stream().map(item -> {
+                OrderItem oi = new OrderItem();
+                oi.setOrderNo(orderNo);
+                oi.setUserId(userId);
+                oi.setProductId(item.getProductId());
+                oi.setProductName(item.getName());
+                oi.setProductImage(item.getImage());
+                oi.setUnitPrice(item.getPrice());
+                oi.setQuantity(item.getQuantity());
+                oi.setTotalPrice(item.getSubtotal());
+                oi.setCreateTime(java.time.LocalDateTime.now());
+                return oi;
+            }).collect(Collectors.toList());
+            orderItemMapper.batchInsert(orderItems);
+
+            for (CartItem item : checkedItems) {
+                redisTemplate.opsForHash().delete(RedisKeyPrefix.CART + userId, String.valueOf(item.getProductId()));
+            }
+
+            Map<String, Object> msg = Map.of("orderNo", orderNo, "userId", userId, "timestamp", System.currentTimeMillis());
+            kafkaTemplate.send(KafkaTopic.ORDER_CREATE, String.valueOf(orderNo), JsonUtil.toJson(msg));
+
+            log.info("Order created: orderNo={}, userId={}, amount={}", orderNo, userId, totalPrice);
+            return orderNo;
+        } finally {
+            lock.unlock(lockKey, lockValue);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void paySuccess(Long orderNo, BigDecimal amount, String tradeNo) {
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        if (order.getStatus() != OrderStatusEnum.UNPAID.getCode()) {
+            log.warn("Order {} already processed, status={}", orderNo, order.getStatus());
+            return;
+        }
+        orderMapper.updatePayInfo(orderNo, amount, tradeNo, LocalDateTime.now());
+        orderMapper.updateStatus(orderNo, OrderStatusEnum.PAID.getCode());
+
+        kafkaTemplate.send(KafkaTopic.ORDER_PAY, String.valueOf(orderNo),
+                JsonUtil.toJson(Map.of("orderNo", orderNo, "amount", amount, "tradeNo", tradeNo)));
+
+        log.info("Order paid: orderNo={}, amount={}", orderNo, amount);
+    }
+
+    @Override
+    @Transactional
+    public void cancel(Long orderNo, Long userId) {
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        if (!order.getUserId().equals(userId)) {
+                        throw new BusinessException("无权操作此订单");
+        }
+        if (order.getStatus() != OrderStatusEnum.UNPAID.getCode()) {
+            throw new BusinessException("当前状态的订单无法取消");
+        }
+        orderMapper.updateStatus(orderNo, OrderStatusEnum.CANCELLED.getCode());
+
+        kafkaTemplate.send(KafkaTopic.ORDER_CANCEL, String.valueOf(orderNo),
+                JsonUtil.toJson(Map.of("orderNo", orderNo, "userId", userId)));
+        log.info("Order cancelled: orderNo={}", orderNo);
+    }
+
+    @Override
+    public Order getByOrderNo(Long orderNo) {
+        return orderMapper.selectByOrderNo(orderNo);
+    }
+
+    @Override
+    public List<OrderItem> getItems(Long orderNo) {
+        return orderItemMapper.selectByOrderNo(orderNo);
+    }
+
+    @Override
+    public PageResult<Order> userList(Long userId, Integer status, int pageNum, int pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+        List<Order> list = orderMapper.selectByUserId(userId, status, offset, pageSize);
+        for (Order order : list) {
+            order.setOrderItems(getItems(order.getOrderNo()));
+        }
+        long total = orderMapper.countByUserId(userId, status);
+        return new PageResult<>(total, pageNum, pageSize, list);
+    }
+
+    @Override
+    public PageResult<Order> adminList(Long orderNo, Integer status, String startDate, String endDate, int pageNum, int pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime startTime = startDate != null ? LocalDateTime.parse(startDate + " 00:00:00", fmt) : null;
+        LocalDateTime endTime = endDate != null ? LocalDateTime.parse(endDate + " 23:59:59", fmt) : null;
+        List<Order> list = orderMapper.selectByCondition(orderNo, status, startTime, endTime, offset, pageSize);
+        long total = orderMapper.countByCondition(orderNo, status, startTime, endTime);
+        return new PageResult<>(total, pageNum, pageSize, list);
+    }
+
+    @Override
+    public void processOrderCreate(Long orderNo) {
+        log.info("Processing async order create: orderNo={}", orderNo);
+    }
+}

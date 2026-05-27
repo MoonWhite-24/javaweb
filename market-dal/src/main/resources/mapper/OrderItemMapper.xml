@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.market.dal.mapper.OrderItemMapper">
+
+    <resultMap id="BaseResultMap" type="com.market.dal.entity.OrderItem">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="user_id" property="userId"/>
+        <result column="product_id" property="productId"/>
+        <result column="product_name" property="productName"/>
+        <result column="product_image" property="productImage"/>
+        <result column="unit_price" property="unitPrice"/>
+        <result column="quantity" property="quantity"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        id, order_no, user_id, product_id, product_name, product_image,
+        unit_price, quantity, total_price, create_time
+    </sql>
+
+    <insert id="insert" parameterType="com.market.dal.entity.OrderItem"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO order_item (order_no, user_id, product_id, product_name,
+                                product_image, unit_price, quantity, total_price,
+                                create_time)
+        VALUES (#{orderNo}, #{userId}, #{productId}, #{productName},
+                #{productImage}, #{unitPrice}, #{quantity}, #{totalPrice},
+                #{createTime})
+    </insert>
+
+    <insert id="batchInsert" parameterType="java.util.List"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO order_item (order_no, user_id, product_id, product_name,
+                                product_image, unit_price, quantity, total_price,
+                                create_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.orderNo}, #{item.userId}, #{item.productId}, #{item.productName},
+             #{item.productImage}, #{item.unitPrice}, #{item.quantity},
+             #{item.totalPrice}, #{item.createTime})
+        </foreach>
+    </insert>
+
+    <select id="selectByOrderNo" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM order_item
+        WHERE order_no = #{orderNo}
+    </select>
+
+</mapper>
