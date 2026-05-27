@@ -2,7 +2,6 @@
 target/
 *.jar
 
-
 # Node
 node_modules/
 dist/
@@ -27,3 +26,6 @@ logs/
 # Jenkins
 .jenkins/
 workspace/
+
+# Claude
+.claude/
