@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -65,7 +66,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private void sendError(HttpServletResponse response, int code, String msg) throws IOException {
         response.setStatus(code);
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(JsonUtil.toJson(
-                Map.of("code", code, "msg", msg, "data", null)));
+        Map<String, Object> err = new HashMap<>();
+        err.put("code", code);
+        err.put("msg", msg);
+        err.put("data", null);
+        response.getWriter().write(JsonUtil.toJson(err));
     }
 }

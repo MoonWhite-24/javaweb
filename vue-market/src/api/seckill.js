@@ -1,4 +1,9 @@
 import request from './request'
+
 export const getSeckillProducts = () => request.get('/seckill/products')
-export const executeSeckill = (pid) => request.post(`/seckill/execute/${pid}`)
-export const getSeckillResult = (pid) => request.get(`/seckill/result/${pid}`)
+
+export const executeSeckill = (productId) =>
+  request.post(`/seckill/execute/${productId}`)
+
+export const getSeckillResult = (productId) =>
+  request.get(`/seckill/result/${productId}`)

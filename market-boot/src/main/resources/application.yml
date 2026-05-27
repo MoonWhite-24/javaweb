@@ -43,18 +43,23 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
 mybatis:
-  config-location: classpath:mybatis-config.xml
   mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
 
 app:
   jwt:
     secret: market-jwt-secret-key-2026-must-be-at-least-256-bits-long!!
     access-expiration: 900000
     refresh-expiration: 604800000
-
-snowflake:
-  worker-id: ${SNOWFLAKE_WORKER_ID:1}
+  snowflake:
+    worker-id: ${SNOWFLAKE_WORKER_ID:1}
+    datacenter-id: ${SNOWFLAKE_DATACENTER_ID:1}
 
 logging:
   level:

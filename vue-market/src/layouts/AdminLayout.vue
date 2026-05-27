@@ -4,7 +4,7 @@
     <div class="admin-body">
       <AdminSidebar :collapsed="sidebarCollapsed" />
       <main class="admin-content">
-        <router-view />
+        <slot />
       </main>
     </div>
   </div>

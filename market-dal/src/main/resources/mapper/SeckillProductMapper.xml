@@ -23,11 +23,9 @@
     <insert id="insert" parameterType="com.market.dal.entity.SeckillProduct"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO seckill_product (product_id, seckill_price, stock_count,
-                                     start_time, end_time, status,
-                                     create_time, update_time)
+                                     start_time, end_time, status)
         VALUES (#{productId}, #{seckillPrice}, #{stockCount},
-                #{startTime}, #{endTime}, #{status},
-                #{createTime}, #{updateTime})
+                #{startTime}, #{endTime}, #{status})
     </insert>
 
     <update id="updateById" parameterType="com.market.dal.entity.SeckillProduct">

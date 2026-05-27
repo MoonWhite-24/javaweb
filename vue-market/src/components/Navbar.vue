@@ -1,6 +1,6 @@
 <template>
   <el-menu mode="horizontal" :ellipsis="false" class="navbar" router>
-    <div class="logo">Market 2.0</div>
+    <router-link to="/" class="logo"><el-icon :size="24"><ShoppingCartFull /></el-icon><span>JavaWeb Mall</span></router-link>
     <div class="flex-grow" />
     <el-menu-item index="/">首页</el-menu-item>
     <el-menu-item index="/products">全部商品</el-menu-item>
@@ -35,6 +35,6 @@ onMounted(() => { if (userStore.isLoggedIn) cartStore.fetch() })
 
 <style scoped>
 .navbar { position: fixed; top: 0; width: 100%; z-index: 1000; }
-.logo { font-size: 20px; font-weight: bold; padding: 0 20px; color: #409eff; }
+.logo { display: flex; align-items: center; gap: 8px; padding: 0 20px; text-decoration: none; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #409eff, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .flex-grow { flex-grow: 1; }
 </style>

@@ -1,37 +1,42 @@
 import axios from 'axios'
 import router from '../router'
 
-const request = axios.create({ baseURL: '/api', timeout: 10000 })
+const request = axios.create({
+  baseURL: '/api',
+  timeout: 10000
+})
 
-request.interceptors.request.use(c => {
-  const t = localStorage.getItem('accessToken')
-  if (t) c.headers.Authorization = `Bearer ${t}`
-  return c
+request.interceptors.request.use(config => {
+  const token = localStorage.getItem('accessToken')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 request.interceptors.response.use(
-  r => r,
-  async e => {
-    if (e.response?.status === 401) {
-      const rt = localStorage.getItem('refreshToken')
-      if (rt && !e.config._retry) {
-        e.config._retry = true
+  response => response,
+  async error => {
+    if (error.response?.status === 401) {
+      const refreshToken = localStorage.getItem('refreshToken')
+      if (refreshToken && !error.config._retry) {
+        error.config._retry = true
         try {
-          const { data } = await axios.post('/api/auth/refresh', { refreshToken: rt })
+          const { data } = await axios.post('/api/auth/refresh', { refreshToken })
           if (data.code === 200) {
             localStorage.setItem('accessToken', data.data.accessToken)
             localStorage.setItem('refreshToken', data.data.refreshToken)
-            e.config.headers.Authorization = `Bearer ${data.data.accessToken}`
-            return request(e.config)
+            error.config.headers.Authorization = `Bearer ${data.data.accessToken}`
+            return request(error.config)
           }
-        } catch (_) {}
+        } catch (e) {}
       }
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('userInfo')
       router.push('/login')
     }
-    return Promise.reject(e)
+    return Promise.reject(error)
   }
 )
 

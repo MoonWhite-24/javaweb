@@ -108,8 +108,7 @@ public class SeckillServiceImpl implements SeckillService {
 
     @Override
     public void add(SeckillProduct sp) {
-        sp.setCreateTime(java.time.LocalDateTime.now());
-        sp.setUpdateTime(java.time.LocalDateTime.now());
+        if (sp.getStatus() == null) sp.setStatus(1);
         seckillProductMapper.insert(sp);
         initStockToRedis(sp.getId());
         log.info("Seckill product added: id={}", sp.getId());
