@@ -29,7 +29,7 @@ public class SnowflakeIdGenerator {
     private long sequence = 0L;
     private long lastTimestamp = -1L;
 
-    public SnowflakeIdGenerator(@Value("${snowflake.worker-id}") long workerId) {
+    public SnowflakeIdGenerator(@Value("${app.snowflake.worker-id}") long workerId) {
         if (workerId > MAX_WORKER_ID || workerId < 0) {
             throw new IllegalArgumentException(
                     "workerId must be between 0 and " + MAX_WORKER_ID);
