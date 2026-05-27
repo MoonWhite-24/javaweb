@@ -1,7 +1,7 @@
 # Maven
 target/
 *.jar
-!market-boot.jar
+
 
 # Node
 node_modules/
