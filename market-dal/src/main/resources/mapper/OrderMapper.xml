@@ -45,14 +45,14 @@
 
     <select id="selectByOrderNo" resultMap="BaseResultMap">
         SELECT <include refid="BaseColumnList"/>,
-            (SELECT GROUP_CONCAT(oi.product_name SEPARATOR ', ') FROM order_item oi WHERE oi.order_no = o.order_no) as product_names
+            (SELECT GROUP_CONCAT(oi.product_name SEPARATOR ', ') FROM order_item oi WHERE oi.order_no = order.order_no) as product_names
         FROM `order`
         WHERE order_no = #{orderNo}
     </select>
 
     <select id="selectByUserId" resultMap="BaseResultMap">
         SELECT <include refid="BaseColumnList"/>,
-            (SELECT GROUP_CONCAT(oi.product_name SEPARATOR ', ') FROM order_item oi WHERE oi.order_no = o.order_no) as product_names
+            (SELECT GROUP_CONCAT(oi.product_name SEPARATOR ', ') FROM order_item oi WHERE oi.order_no = order.order_no) as product_names
         FROM `order`
         WHERE user_id = #{userId}
         <if test="status != null">
@@ -111,7 +111,7 @@
 
     <select id="selectByCondition" resultMap="BaseResultMap">
         SELECT <include refid="BaseColumnList"/>,
-            (SELECT GROUP_CONCAT(oi.product_name SEPARATOR ', ') FROM order_item oi WHERE oi.order_no = o.order_no) as product_names
+            (SELECT GROUP_CONCAT(oi.product_name SEPARATOR ', ') FROM order_item oi WHERE oi.order_no = order.order_no) as product_names
         FROM `order`
         <where>
             <if test="orderNo != null and orderNo != ''">
