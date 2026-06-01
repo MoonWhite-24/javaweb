@@ -36,7 +36,7 @@ public class AuthController {
     @PostMapping("/register")
     public R<Map<String, Object>> register(@RequestBody Map<String, String> body) {
         UserDTO user = userService.register(body.get("username"), body.get("password"),
-                body.getOrDefault("phone", ""), body.getOrDefault("captchaCode", ""));
+                body.getOrDefault("phone", ""));
         if (user == null) return R.error(400, "注册失败");
         return R.ok(Map.of("username", user.getUsername()));
     }

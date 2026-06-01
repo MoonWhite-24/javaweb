@@ -24,23 +24,19 @@
     <insert id="insert" parameterType="com.market.dal.entity.OrderItem"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO order_item (order_no, user_id, product_id, product_name,
-                                product_image, unit_price, quantity, total_price,
-                                create_time)
+                                product_image, unit_price, quantity, total_price)
         VALUES (#{orderNo}, #{userId}, #{productId}, #{productName},
-                #{productImage}, #{unitPrice}, #{quantity}, #{totalPrice},
-                #{createTime})
+                #{productImage}, #{unitPrice}, #{quantity}, #{totalPrice})
     </insert>
 
     <insert id="batchInsert" parameterType="java.util.List"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO order_item (order_no, user_id, product_id, product_name,
-                                product_image, unit_price, quantity, total_price,
-                                create_time)
+                                product_image, unit_price, quantity, total_price)
         VALUES
         <foreach collection="list" item="item" separator=",">
             (#{item.orderNo}, #{item.userId}, #{item.productId}, #{item.productName},
-             #{item.productImage}, #{item.unitPrice}, #{item.quantity},
-             #{item.totalPrice}, #{item.createTime})
+             #{item.productImage}, #{item.unitPrice}, #{item.quantity}, #{item.totalPrice})
         </foreach>
     </insert>
 
@@ -49,5 +45,10 @@
         FROM order_item
         WHERE order_no = #{orderNo}
     </select>
+
+    <delete id="deleteByOrderNo">
+        DELETE FROM order_item
+        WHERE order_no = #{orderNo}
+    </delete>
 
 </mapper>

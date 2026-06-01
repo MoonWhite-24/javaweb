@@ -6,8 +6,8 @@ import com.market.common.model.PageResult;
 import com.market.common.util.JsonUtil;
 import com.market.dal.entity.Category;
 import com.market.dal.entity.Product;
-import com.market.dal.mapper.CategoryMapper;
 import com.market.dal.mapper.ProductMapper;
+import com.market.service.CategoryService;
 import com.market.service.ProductService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -26,14 +29,33 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private ProductMapper productMapper;
     @Autowired
-    private CategoryMapper categoryMapper;
-    @Autowired
     private StringRedisTemplate redisTemplate;
+    @Autowired
+    private CategoryService categoryService;
+
+    private List<Integer> expandCategoryIds(Integer categoryId) {
+        if (categoryId == null) return null;
+        List<Integer> ids = new ArrayList<>();
+        ids.add(categoryId);
+        collectDescendants(categoryId, ids);
+        return ids;
+    }
+
+    private void collectDescendants(Integer parentId, List<Integer> ids) {
+        List<Category> all = categoryService.getAll();
+        for (Category c : all) {
+            if (parentId.equals(c.getParentId())) {
+                ids.add(c.getId());
+                collectDescendants(c.getId(), ids);
+            }
+        }
+    }
 
     @Override
     public PageResult<Product> listPage(Integer categoryId, String keyword, String orderBy, int pageNum, int pageSize) {
         int offset = (pageNum - 1) * pageSize;
-        String cacheKey = RedisKeyPrefix.PRODUCT_LIST + categoryId + ":" + pageNum + ":" + pageSize
+        List<Integer> categoryIds = expandCategoryIds(categoryId);
+        String cacheKey = RedisKeyPrefix.PRODUCT_LIST + (categoryId != null ? categoryId : 0) + ":" + pageNum + ":" + pageSize
                 + ":" + (keyword != null ? keyword : "") + ":" + (orderBy != null ? orderBy : "");
 
         String cached = redisTemplate.opsForValue().get(cacheKey);
@@ -41,9 +63,9 @@ public class ProductServiceImpl implements ProductService {
             return JsonUtil.fromJson(cached, PageResult.class);
         }
 
-        List<Product> list = productMapper.selectPage(categoryId, keyword, ProductStatusEnum.ON_SHELF.getCode(),
+        List<Product> list = productMapper.selectPage(categoryIds, keyword, ProductStatusEnum.ON_SHELF.getCode(),
                 orderBy, offset, pageSize);
-        long total = productMapper.count(categoryId, keyword, ProductStatusEnum.ON_SHELF.getCode());
+        long total = productMapper.count(categoryIds, keyword, ProductStatusEnum.ON_SHELF.getCode());
 
         PageResult<Product> result = new PageResult<>(total, pageNum, pageSize, list);
         redisTemplate.opsForValue().set(cacheKey, JsonUtil.toJson(result), 5, TimeUnit.MINUTES);
@@ -62,12 +84,6 @@ public class ProductServiceImpl implements ProductService {
         }
         Product product = productMapper.selectById(id);
         if (product != null) {
-            if (product.getCategoryId() != null) {
-                Category category = categoryMapper.selectById(product.getCategoryId());
-                if (category != null) {
-                    product.setCategoryName(category.getName());
-                }
-            }
             redisTemplate.opsForValue().set(cacheKey, JsonUtil.toJson(product), 1, TimeUnit.HOURS);
         }
         return product;
@@ -75,9 +91,19 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void add(Product product) {
-        product.setCreateTime(java.time.LocalDateTime.now());
-        product.setUpdateTime(java.time.LocalDateTime.now());
+        if (product.getCategoryId() == null || product.getCategoryId() == 0) {
+            List<Category> categories = categoryService.getAll();
+            if (!categories.isEmpty()) {
+                int idx = ThreadLocalRandom.current().nextInt(categories.size());
+                product.setCategoryId(categories.get(idx).getId());
+            }
+        }
+        if (product.getSales() == null) product.setSales(0);
+        if (product.getCreateTime() == null) product.setCreateTime(java.time.LocalDateTime.now());
+        if (product.getUpdateTime() == null) product.setUpdateTime(java.time.LocalDateTime.now());
         productMapper.insert(product);
+        var keys = redisTemplate.keys(RedisKeyPrefix.PRODUCT_LIST + "*");
+        if (keys != null && !keys.isEmpty()) redisTemplate.delete(keys);
         log.info("Product added: {}", product.getName());
     }
 
@@ -103,13 +129,21 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public PageResult<Product> adminList(Integer categoryId, String keyword, Integer status, int pageNum, int pageSize) {
         int offset = (pageNum - 1) * pageSize;
-        List<Product> list = productMapper.selectPage(categoryId, keyword, status, null, offset, pageSize);
-        long total = productMapper.count(categoryId, keyword, status);
+        List<Integer> categoryIds = expandCategoryIds(categoryId);
+        List<Product> list = productMapper.selectPage(categoryIds, keyword, status, null, offset, pageSize);
+        long total = productMapper.count(categoryIds, keyword, status);
         return new PageResult<>(total, pageNum, pageSize, list);
     }
 
     @Override
     public List<Product> getHot(int limit) {
         return productMapper.selectHot(limit);
+    }
+
+    @Override
+    public void delete(Long id) {
+        productMapper.deleteById(id);
+        redisTemplate.delete(RedisKeyPrefix.PRODUCT + id);
+        log.info("Product deleted: {}", id);
     }
 }

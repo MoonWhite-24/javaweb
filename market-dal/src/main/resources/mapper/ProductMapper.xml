@@ -26,8 +26,11 @@
 
     <sql id="WhereCondition">
         <where>
-            <if test="categoryId != null">
-                AND category_id = #{categoryId}
+            <if test="categoryIds != null and categoryIds.size() > 0">
+                AND category_id IN
+                <foreach collection="categoryIds" item="cid" open="(" close=")" separator=",">
+                    #{cid}
+                </foreach>
             </if>
             <if test="keyword != null and keyword != ''">
                 AND name LIKE CONCAT('%', #{keyword}, '%')
@@ -149,6 +152,10 @@
         ORDER BY sales DESC
         LIMIT #{limit}
     </select>
+
+    <delete id="deleteById">
+        DELETE FROM product WHERE id = #{id}
+    </delete>
 
     <select id="selectByIds" resultMap="BaseResultMap">
         SELECT <include refid="BaseColumnList"/>

@@ -98,7 +98,7 @@
                 AND status = #{status}
             </if>
         </where>
-        ORDER BY create_time DESC
+        ORDER BY role DESC, id ASC
         <if test="offset != null and pageSize != null and pageSize > 0">
             LIMIT #{offset}, #{pageSize}
         </if>
@@ -131,5 +131,9 @@
             update_time = NOW()
         WHERE id = #{id}
     </update>
+
+    <delete id="deleteById">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
 
 </mapper>

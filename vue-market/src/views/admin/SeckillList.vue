@@ -65,9 +65,15 @@ const dialogVisible = ref(false)
 const form = ref({})
 const editingId = ref(null)
 
+const resolveNames = (list) => {
+  const map = {}
+  allProducts.value.forEach(p => { map[p.id] = p.name })
+  list.forEach(s => { s.productName = map[s.productId] || `商品#${s.productId}` })
+  return list
+}
 const fetch = async () => {
   const { data } = await getAdminSeckillProducts({ pageNum: 1, pageSize: 50 })
-  if (data.code === 200) products.value = data.data || []
+  if (data.code === 200) products.value = resolveNames(data.data || [])
 }
 
 const fetchAllProducts = async () => {

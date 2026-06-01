@@ -16,4 +16,6 @@ public interface OrderService {
     PageResult<Order> userList(Long userId, Integer status, int pageNum, int pageSize);
     PageResult<Order> adminList(Long orderNo, Integer status, String startDate, String endDate, int pageNum, int pageSize);
     void processOrderCreate(Long orderNo);
+    void processSeckillOrder(Long orderNo, Long userId, Long seckillProductId);
+    void deleteOrder(Long orderNo, Long userId);
 }

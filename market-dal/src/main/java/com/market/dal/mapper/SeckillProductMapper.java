@@ -16,4 +16,5 @@ public interface SeckillProductMapper {
     List<SeckillProduct> selectActiveNow();
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
     int deleteById(@Param("id") Long id);
+    List<SeckillProduct> selectByProductId(@Param("productId") Long productId);
 }

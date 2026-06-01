@@ -36,11 +36,11 @@
         INSERT INTO `order` (order_no, user_id, shipping_name, shipping_phone,
                              shipping_address, total_price, payment, payment_type,
                              payment_trade_no, status, payment_time, send_time,
-                             end_time, close_time, remark, create_time, update_time)
+                             end_time, close_time, remark)
         VALUES (#{orderNo}, #{userId}, #{shippingName}, #{shippingPhone},
                 #{shippingAddress}, #{totalPrice}, #{payment}, #{paymentType},
                 #{paymentTradeNo}, #{status}, #{paymentTime}, #{sendTime},
-                #{endTime}, #{closeTime}, #{remark}, #{createTime}, #{updateTime})
+                #{endTime}, #{closeTime}, #{remark})
     </insert>
 
     <select id="selectByOrderNo" resultMap="BaseResultMap">
@@ -92,14 +92,15 @@
 
     <update id="updatePayInfo">
         UPDATE `order`
-        SET payment_type = #{paymentType},
+        SET payment = #{payment},
             payment_trade_no = #{paymentTradeNo},
+            payment_time = #{paymentTime},
             update_time = NOW()
         WHERE order_no = #{orderNo}
     </update>
 
-    <select id="selectUnpaidBeforeDeadline" resultMap="BaseResultMap">
-        SELECT <include refid="BaseColumnList"/>
+    <select id="selectUnpaidBeforeDeadline" resultType="java.lang.Long">
+        SELECT order_no
         FROM `order`
         WHERE status = #{status}
           AND create_time &lt; #{deadline}
@@ -172,5 +173,10 @@
         FROM `order`
         WHERE status = #{status}
     </select>
+
+    <delete id="deleteByOrderNo">
+        DELETE FROM `order`
+        WHERE order_no = #{orderNo}
+    </delete>
 
 </mapper>

@@ -18,4 +18,5 @@ public interface UserMapper {
     long countByCondition(@Param("keyword") String keyword, @Param("status") Integer status);
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
     int updateLastLogin(@Param("id") Long id);
+    int deleteById(@Param("id") Long id);
 }

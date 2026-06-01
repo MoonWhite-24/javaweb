@@ -9,4 +9,5 @@ public interface OrderItemMapper {
     int insert(OrderItem item);
     int batchInsert(@Param("list") List<OrderItem> items);
     List<OrderItem> selectByOrderNo(@Param("orderNo") Long orderNo);
+    int deleteByOrderNo(@Param("orderNo") Long orderNo);
 }

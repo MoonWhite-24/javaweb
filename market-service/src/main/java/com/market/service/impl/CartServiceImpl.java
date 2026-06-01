@@ -98,10 +98,23 @@ public class CartServiceImpl implements CartService {
     public List<CartItem> list(Long userId) {
         String key = RedisKeyPrefix.CART + userId;
         Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
-        return entries.values().stream()
-                .map(v -> JsonUtil.fromJson((String) v, CartItem.class))
-                .sorted(Comparator.comparing(CartItem::getCreateTime).reversed())
-                .collect(Collectors.toList());
+        List<CartItem> items = new java.util.ArrayList<>();
+        boolean needUpdate = false;
+        for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+            CartItem item = JsonUtil.fromJson((String) entry.getValue(), CartItem.class);
+            Product product = productMapper.selectById(item.getProductId());
+            if (product != null && !product.getStock().equals(item.getStock())) {
+                item.setStock(product.getStock());
+                redisTemplate.opsForHash().put(key, entry.getKey(), JsonUtil.toJson(item));
+                needUpdate = true;
+            }
+            items.add(item);
+        }
+        if (needUpdate) {
+            redisTemplate.expire(key, 7, TimeUnit.DAYS);
+        }
+        items.sort(Comparator.comparing(CartItem::getCreateTime).reversed());
+        return items;
     }
 
     @Override

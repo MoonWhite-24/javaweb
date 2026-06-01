@@ -9,8 +9,12 @@ import com.market.common.util.JsonUtil;
 import com.market.dal.entity.CartItem;
 import com.market.dal.entity.Order;
 import com.market.dal.entity.OrderItem;
+import com.market.dal.entity.Product;
+import com.market.dal.entity.SeckillProduct;
 import com.market.dal.mapper.OrderItemMapper;
 import com.market.dal.mapper.OrderMapper;
+import com.market.dal.mapper.ProductMapper;
+import com.market.dal.mapper.SeckillProductMapper;
 import com.market.service.OrderService;
 import com.market.service.impl.redis.RedisDistributedLock;
 import com.market.service.impl.snowflake.SnowflakeIdGenerator;
@@ -18,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +53,10 @@ public class OrderServiceImpl implements OrderService {
     private StringRedisTemplate redisTemplate;
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
+    @Autowired
+    private SeckillProductMapper seckillProductMapper;
+    @Autowired
+    private ProductMapper productMapper;
 
     @Override
     @Transactional
@@ -79,8 +88,6 @@ public class OrderServiceImpl implements OrderService {
             order.setTotalPrice(totalPrice);
             order.setStatus(OrderStatusEnum.UNPAID.getCode());
             order.setPaymentType(1);
-            order.setCreateTime(java.time.LocalDateTime.now());
-            order.setUpdateTime(java.time.LocalDateTime.now());
             orderMapper.insert(order);
 
             List<OrderItem> orderItems = checkedItems.stream().map(item -> {
@@ -93,7 +100,6 @@ public class OrderServiceImpl implements OrderService {
                 oi.setUnitPrice(item.getPrice());
                 oi.setQuantity(item.getQuantity());
                 oi.setTotalPrice(item.getSubtotal());
-                oi.setCreateTime(java.time.LocalDateTime.now());
                 return oi;
             }).collect(Collectors.toList());
             orderItemMapper.batchInsert(orderItems);
@@ -147,9 +153,40 @@ public class OrderServiceImpl implements OrderService {
         }
         orderMapper.updateStatus(orderNo, OrderStatusEnum.CANCELLED.getCode());
 
+        // Restore seckill Redis state for each order item
+        List<OrderItem> items = orderItemMapper.selectByOrderNo(orderNo);
+        for (OrderItem item : items) {
+            List<SeckillProduct> spList = seckillProductMapper.selectByProductId(item.getProductId());
+            for (SeckillProduct sp : spList) {
+                redisTemplate.opsForSet().remove(RedisKeyPrefix.SECKILL_USERS + sp.getId(), String.valueOf(userId));
+                redisTemplate.opsForValue().increment(RedisKeyPrefix.SECKILL_STOCK + sp.getId());
+                log.info("Seckill stock restored: spId={}, userId={}", sp.getId(), userId);
+            }
+        }
+
         kafkaTemplate.send(KafkaTopic.ORDER_CANCEL, String.valueOf(orderNo),
                 JsonUtil.toJson(Map.of("orderNo", orderNo, "userId", userId)));
         log.info("Order cancelled: orderNo={}", orderNo);
+    }
+
+    @Override
+    @Transactional
+    public void deleteOrder(Long orderNo, Long userId) {
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        if (!order.getUserId().equals(userId)) {
+            throw new BusinessException("无权操作此订单");
+        }
+        if (order.getStatus() != OrderStatusEnum.PAID.getCode()
+                && order.getStatus() != OrderStatusEnum.CANCELLED.getCode()
+                && order.getStatus() != OrderStatusEnum.DONE.getCode()) {
+            throw new BusinessException("只能删除已支付、已取消或已完成的订单");
+        }
+        orderItemMapper.deleteByOrderNo(orderNo);
+        orderMapper.deleteByOrderNo(orderNo);
+        log.info("Order deleted: orderNo={}", orderNo);
     }
 
     @Override
@@ -166,9 +203,6 @@ public class OrderServiceImpl implements OrderService {
     public PageResult<Order> userList(Long userId, Integer status, int pageNum, int pageSize) {
         int offset = (pageNum - 1) * pageSize;
         List<Order> list = orderMapper.selectByUserId(userId, status, offset, pageSize);
-        for (Order order : list) {
-            order.setOrderItems(getItems(order.getOrderNo()));
-        }
         long total = orderMapper.countByUserId(userId, status);
         return new PageResult<>(total, pageNum, pageSize, list);
     }
@@ -184,8 +218,73 @@ public class OrderServiceImpl implements OrderService {
         return new PageResult<>(total, pageNum, pageSize, list);
     }
 
+    @KafkaListener(topics = KafkaTopic.ORDER_CREATE, groupId = "market-order-processor")
+    public void onOrderCreate(String message) {
+        log.info("Received order-create message: {}", message);
+        try {
+            Map<String, Object> msg = JsonUtil.fromJson(message, Map.class);
+            Long orderNo = Long.valueOf(msg.get("orderNo").toString());
+            Long userId = Long.valueOf(msg.get("userId").toString());
+            Long seckillProductId = Long.valueOf(msg.get("seckillProductId").toString());
+            processSeckillOrder(orderNo, userId, seckillProductId);
+        } catch (Exception e) {
+            log.error("Failed to process order-create message", e);
+        }
+    }
+
     @Override
+    @Transactional
     public void processOrderCreate(Long orderNo) {
         log.info("Processing async order create: orderNo={}", orderNo);
+    }
+
+    @Override
+    @Transactional
+    public void processSeckillOrder(Long orderNo, Long userId, Long seckillProductId) {
+        String idempotentKey = RedisKeyPrefix.ORDER_CREATED + orderNo;
+        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(idempotentKey, String.valueOf(orderNo), 1, TimeUnit.HOURS);
+        if (Boolean.FALSE.equals(acquired)) {
+            log.info("Duplicate seckill order message ignored: orderNo={}", orderNo);
+            return;
+        }
+
+        try {
+            SeckillProduct sp = seckillProductMapper.selectById(seckillProductId);
+            if (sp == null) {
+                log.error("Seckill product not found: id={}", seckillProductId);
+                return;
+            }
+            Product product = productMapper.selectById(sp.getProductId());
+            if (product == null) {
+                log.error("Product not found: id={}", sp.getProductId());
+                return;
+            }
+
+            Order order = new Order();
+            order.setOrderNo(orderNo);
+            order.setUserId(userId);
+            order.setTotalPrice(sp.getSeckillPrice());
+            order.setPayment(sp.getSeckillPrice());
+            order.setStatus(OrderStatusEnum.UNPAID.getCode());
+            order.setPaymentType(1);
+            orderMapper.insert(order);
+
+            OrderItem oi = new OrderItem();
+            oi.setOrderNo(orderNo);
+            oi.setUserId(userId);
+            oi.setProductId(product.getId());
+            oi.setProductName(product.getName());
+            oi.setProductImage(product.getMainImage());
+            oi.setUnitPrice(sp.getSeckillPrice());
+            oi.setQuantity(1);
+            oi.setTotalPrice(sp.getSeckillPrice());
+            orderItemMapper.insert(oi);
+
+            log.info("Seckill order created: orderNo={}, userId={}, product={}, price={}",
+                    orderNo, userId, product.getName(), sp.getSeckillPrice());
+        } catch (Exception e) {
+            redisTemplate.delete(idempotentKey);
+            log.error("Failed to create seckill order: orderNo={}", orderNo, e);
+        }
     }
 }

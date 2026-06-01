@@ -13,4 +13,5 @@ public interface ProductService {
     void updateStock(Long id, int delta);
     PageResult<Product> adminList(Integer categoryId, String keyword, Integer status, int pageNum, int pageSize);
     List<Product> getHot(int limit);
+    void delete(Long id);
 }

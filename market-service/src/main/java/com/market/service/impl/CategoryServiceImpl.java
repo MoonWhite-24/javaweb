@@ -48,8 +48,6 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void add(Category category) {
-        category.setCreateTime(java.time.LocalDateTime.now());
-        category.setUpdateTime(java.time.LocalDateTime.now());
         categoryMapper.insert(category);
         refreshCache();
     }
@@ -83,12 +81,10 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     private void buildChildren(Category parent, List<Category> all) {
-        java.util.List<Category> children = all.stream()
+        List<Category> children = all.stream()
                 .filter(c -> c.getParentId().equals(parent.getId()))
-                .collect(java.util.stream.Collectors.toList());
-        parent.setChildren(children);
-        for (Category child : children) {
-            buildChildren(child, all);
-        }
+                .peek(c -> buildChildren(c, all))
+                .collect(Collectors.toList());
+        if (!children.isEmpty()) parent.setChildren(children);
     }
 }

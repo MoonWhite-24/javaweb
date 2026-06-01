@@ -3,13 +3,13 @@
     <div v-if="product" class="product-detail">
       <el-row :gutter="40">
         <el-col :sm="24" :md="10">
-          <img :src="product.image || 'https://placehold.co/400x400?text=No+Image'" class="detail-img" />
+          <img :src="product.mainImage || 'https://placehold.co/400x400?text=No+Image'" class="detail-img" />
         </el-col>
         <el-col :sm="24" :md="14">
           <h1>{{ product.name }}</h1>
           <p class="detail-price">&yen;{{ (product.price || 0).toFixed(2) }}</p>
           <p class="detail-meta">库存: {{ product.stock || 0 }} | 销量: {{ product.sales || 0 }}</p>
-          <p class="desc">{{ product.description }}</p>
+          <p class="desc">{{ product.detail }}</p>
           <el-input-number v-model="qty" :min="1" :max="product.stock || 99" class="qty-input" />
           <el-button type="primary" size="large" @click="addToCart" :disabled="!product.stock">加入购物车</el-button>
         </el-col>

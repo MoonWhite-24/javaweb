@@ -7,6 +7,7 @@ import com.market.common.exception.BusinessException;
 import com.market.common.util.JsonUtil;
 import com.market.dal.entity.SeckillProduct;
 import com.market.dal.mapper.SeckillProductMapper;
+import com.market.service.OrderService;
 import com.market.service.SeckillService;
 import com.market.service.impl.snowflake.SnowflakeIdGenerator;
 import org.slf4j.Logger;
@@ -38,6 +39,8 @@ public class SeckillServiceImpl implements SeckillService {
     private SnowflakeIdGenerator idGenerator;
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
+    @Autowired
+    private OrderService orderService;
 
     @Override
     public Map<String, Object> doSeckill(Long userId, Long seckillProductId) {
@@ -55,8 +58,6 @@ public class SeckillServiceImpl implements SeckillService {
         Map<String, Object> response = new HashMap<>();
         if (result == 1L) {
             long orderNo = idGenerator.nextId();
-            String orderKey = RedisKeyPrefix.SECKILL_ORDER + userId + ":" + seckillProductId;
-            redisTemplate.opsForValue().set(orderKey, String.valueOf(orderNo), 5, TimeUnit.MINUTES);
 
             Map<String, Object> msg = Map.of(
                     "orderNo", orderNo,
@@ -66,19 +67,26 @@ public class SeckillServiceImpl implements SeckillService {
             );
             kafkaTemplate.send(KafkaTopic.ORDER_CREATE, String.valueOf(orderNo), JsonUtil.toJson(msg));
 
+            // Also create order synchronously as fallback
+            try {
+                orderService.processSeckillOrder(orderNo, userId, seckillProductId);
+            } catch (Exception e) {
+                log.error("Sync seckill order creation failed: orderNo={}", orderNo, e);
+            }
+
             response.put("success", true);
             response.put("orderNo", orderNo);
-            response.put("message", "Seckill successful, order is being processed");
+            response.put("message", "秒杀成功，订单处理中");
             log.info("Seckill success: userId={}, spId={}, orderNo={}", userId, seckillProductId, orderNo);
         } else if (result == -1L) {
             response.put("success", false);
-            response.put("message", "Sold out!");
+            response.put("message", "已抢光！");
         } else if (result == -2L) {
             response.put("success", false);
-            response.put("message", "You have already grabbed this item");
+            response.put("message", "您已参与过该商品的秒杀");
         } else {
             response.put("success", false);
-            response.put("message", "Seckill failed");
+            response.put("message", "秒杀失败");
         }
         return response;
     }
@@ -92,7 +100,14 @@ public class SeckillServiceImpl implements SeckillService {
 
     @Override
     public List<SeckillProduct> getActiveList() {
-        return seckillProductMapper.selectActiveNow();
+        List<SeckillProduct> list = seckillProductMapper.selectActiveNow();
+        for (SeckillProduct sp : list) {
+            String stockStr = redisTemplate.opsForValue().get(RedisKeyPrefix.SECKILL_STOCK + sp.getId());
+            if (stockStr != null) {
+                sp.setStockCount(Integer.parseInt(stockStr));
+            }
+        }
+        return list;
     }
 
     @Override

@@ -37,4 +37,5 @@ public interface OrderMapper {
     java.math.BigDecimal sumTodayRevenue();
     long countTodayNewUsers();
     long countByStatus(@Param("status") Integer status);
+    int deleteByOrderNo(@Param("orderNo") Long orderNo);
 }

@@ -24,8 +24,6 @@ public class Order {
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
-    private List<OrderItem> orderItems;
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getOrderNo() { return orderNo; }
@@ -63,6 +61,7 @@ public class Order {
     public LocalDateTime getUpdateTime() { return updateTime; }
     public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
 
-    public List<OrderItem> getOrderItems() { return orderItems; }
-    public void setOrderItems(List<OrderItem> orderItems) { this.orderItems = orderItems; }
+    private List<OrderItem> items;
+    public List<OrderItem> getItems() { return items; }
+    public void setItems(List<OrderItem> items) { this.items = items; }
 }

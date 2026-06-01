@@ -38,4 +38,7 @@ public class AdminProductController {
     public R<Void> updateStatus(@PathVariable Long id, @RequestBody java.util.Map<String, Integer> body) {
         productService.updateStatus(id, body.get("status")); return R.ok();
     }
+
+    @DeleteMapping("/{id}")
+    public R<Void> delete(@PathVariable Long id) { productService.delete(id); return R.ok(); }
 }

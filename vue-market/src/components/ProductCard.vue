@@ -1,6 +1,6 @@
 <template>
   <el-card :body-style="{ padding: '0' }" shadow="hover" class="product-card" @click="goDetail">
-    <img :src="product.image || 'https://placehold.co/300x200?text=No+Image'" class="product-img" />
+    <img :src="product.mainImage || 'https://placehold.co/300x200?text=No+Image'" class="product-img" />
     <div class="product-info">
       <h3>{{ product.name }}</h3>
       <p class="price">&yen;{{ (product.price || 0).toFixed(2) }}</p>

@@ -17,10 +17,11 @@
             <el-tag :type="row.status === 1 ? 'success' : 'danger'">{{ row.status === 1 ? '上架' : '下架' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="220">
           <template #default="{ row }">
             <el-button size="small" @click="$router.push(`/admin/products/${row.id}/edit`)">编辑</el-button>
             <el-button size="small" type="warning" @click="toggleStatus(row)">{{ row.status === 1 ? '下架' : '上架' }}</el-button>
+            <el-button size="small" type="danger" @click="del(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -33,8 +34,8 @@
 import { ref, onMounted } from 'vue'
 import AdminLayout from '../../layouts/AdminLayout.vue'
 import Pagination from '../../components/Pagination.vue'
-import { getAdminProducts, updateProductStatus } from '../../api/admin'
-import { ElMessage } from 'element-plus'
+import { getAdminProducts, updateProductStatus, deleteAdminProduct } from '../../api/admin'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const products = ref([])
 const total = ref(0)
@@ -50,6 +51,15 @@ const toggleStatus = async (row) => {
   await updateProductStatus(row.id, row.status === 1 ? 0 : 1)
   ElMessage.success('状态已更新')
   fetch()
+}
+
+const del = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确认删除商品 "${row.name}"？`, '提示', { type: 'warning' })
+  } catch { return }
+  const { data } = await deleteAdminProduct(row.id)
+  if (data.code === 200) { ElMessage.success('删除成功'); fetch() }
+  else ElMessage.error(data.msg || '删除失败')
 }
 
 onMounted(fetch)

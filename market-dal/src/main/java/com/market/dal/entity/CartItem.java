@@ -8,6 +8,7 @@ public class CartItem {
     private String image;
     private BigDecimal price;
     private Integer quantity;
+    private Integer stock;
     private Boolean checked;
     private Long createTime;
 
@@ -19,6 +20,7 @@ public class CartItem {
         item.name = product.getName();
         item.image = product.getMainImage();
         item.price = product.getPrice();
+        item.stock = product.getStock();
         item.quantity = quantity;
         item.checked = true;
         item.createTime = System.currentTimeMillis();
@@ -39,8 +41,9 @@ public class CartItem {
     public void setPrice(BigDecimal price) { this.price = price; }
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public Integer getStock() { return stock; }
+    public void setStock(Integer stock) { this.stock = stock; }
     public Boolean isChecked() { return checked; }
-    public Boolean getChecked() { return checked; }
     public void setChecked(Boolean checked) { this.checked = checked; }
     public Long getCreateTime() { return createTime; }
     public void setCreateTime(Long createTime) { this.createTime = createTime; }

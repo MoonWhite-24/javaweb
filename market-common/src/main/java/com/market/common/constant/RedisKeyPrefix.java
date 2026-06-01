@@ -16,6 +16,7 @@ public class RedisKeyPrefix {
     public static final String RATE_IP = "rate:ip:";
     public static final String PAY_DONE = "pay:done:";
     public static final String LOCK_ORDER_CREATE = "lock:order:create:";
+    public static final String ORDER_CREATED = "order:created:";
 
     private RedisKeyPrefix() {}
 }
