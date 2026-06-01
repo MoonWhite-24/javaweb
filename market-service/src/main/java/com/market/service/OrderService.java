@@ -19,4 +19,5 @@ public interface OrderService {
     void processSeckillOrder(Long orderNo, Long userId, Long seckillProductId);
     void deleteOrder(Long orderNo, Long userId);
     void adminDelete(Long orderNo);
+    void updateStatus(Long orderNo, Integer status);
 }

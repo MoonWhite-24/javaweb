@@ -3,13 +3,13 @@
     <div class="cart-page">
       <h2>购物车</h2>
       <el-table v-if="cartStore.items.length" :data="cartStore.items" style="width:100%">
-        <el-table-column prop="productName" label="商品" />
+        <el-table-column prop="name" label="商品" />
         <el-table-column prop="price" label="单价">
           <template #default="{ row }">&yen;{{ (row.price || 0).toFixed(2) }}</template>
         </el-table-column>
         <el-table-column label="数量" width="150">
           <template #default="{ row }">
-            <el-input-number v-model="row.quantity" :min="1" size="small" @change="cartStore.updateQty(row.productId, row.quantity)" />
+            <el-input-number v-model="row.quantity" :min="1" :max="row.stock || 999" size="small" @change="cartStore.updateQty(row.productId, row.quantity)" />
           </template>
         </el-table-column>
         <el-table-column label="小计">
@@ -43,8 +43,13 @@ onMounted(() => cartStore.fetch())
 
 const checkout = async () => {
   const { createOrder } = await import('../../api/order')
+  const { ElMessage } = await import('element-plus')
   const { data } = await createOrder(0)
-  if (data.code === 200) router.push(`/orders/pay/${data.data.orderNo}`)
+  if (data.code === 200) {
+    router.push(`/orders/pay/${data.data.orderNo}`)
+  } else {
+    ElMessage.error(data.msg || '创建订单失败')
+  }
 }
 </script>
 

@@ -300,4 +300,11 @@ public class OrderServiceImpl implements OrderService {
         log.info("Admin deleted order: orderNo={}", orderNo);
     }
 
+
+    @Override
+    public void updateStatus(Long orderNo, Integer status) {
+        orderMapper.updateStatus(orderNo, status);
+        log.info("Order status updated: orderNo={}, status={}", orderNo, status);
+    }
+
 }

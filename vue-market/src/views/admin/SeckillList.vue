@@ -27,6 +27,17 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-pagination
+        v-if="total > 0"
+        style="margin-top:20px;justify-content:flex-end"
+        v-model:current-page="pageNum"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        :total="total"
+        layout="total, prev, pager, next"
+        @current-change="fetch"
+        @size-change="fetch"
+      />
       <el-dialog v-model="dialogVisible" :title="editingId ? '编辑秒杀商品' : '添加秒杀商品'" width="500px">
         <el-form :model="form" label-width="80px">
           <el-form-item label="选择商品">
@@ -64,6 +75,9 @@ const allProducts = ref([])
 const dialogVisible = ref(false)
 const form = ref({})
 const editingId = ref(null)
+const pageNum = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 const resolveNames = (list) => {
   const map = {}
@@ -72,8 +86,12 @@ const resolveNames = (list) => {
   return list
 }
 const fetch = async () => {
-  const { data } = await getAdminSeckillProducts({ pageNum: 1, pageSize: 50 })
-  if (data.code === 200) products.value = resolveNames(data.data || [])
+  const { data } = await getAdminSeckillProducts({ pageNum: pageNum.value, pageSize: pageSize.value })
+  if (data.code === 200) {
+    const list = data.data && data.data.list ? data.data.list : (Array.isArray(data.data) ? data.data : [])
+    products.value = resolveNames(list)
+    total.value = (data.data && data.data.total) || 0
+  }
 }
 
 const fetchAllProducts = async () => {

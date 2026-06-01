@@ -1,5 +1,6 @@
 package com.market.api.controller.admin;
 
+import com.market.common.model.PageResult;
 import com.market.common.model.R;
 import com.market.dal.entity.SeckillProduct;
 import com.market.service.SeckillService;
@@ -15,10 +16,12 @@ public class AdminSeckillController {
     private SeckillService seckillService;
 
     @GetMapping
-    public R<List<SeckillProduct>> list(@RequestParam(required = false) Integer status,
+    public R<PageResult<SeckillProduct>> list(@RequestParam(required = false) Integer status,
         @RequestParam(defaultValue = "1") int pageNum,
         @RequestParam(defaultValue = "20") int pageSize) {
-        return R.ok(seckillService.adminList(status, pageNum, pageSize));
+        java.util.List<SeckillProduct> list = seckillService.adminList(status, pageNum, pageSize);
+        long total = seckillService.adminCount(status);
+        return R.ok(new PageResult<>(total, pageNum, pageSize, list));
     }
 
     @PostMapping

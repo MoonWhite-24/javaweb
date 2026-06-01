@@ -11,3 +11,9 @@ export const getOrderDetail = (orderNo) =>
 
 export const payOrder = (orderNo, amount, tradeNo) =>
   request.post(`/orders/${orderNo}/pay`, { amount, tradeNo })
+
+export const cancelOrder = (orderNo) =>
+  request.post(`/orders/${orderNo}/cancel`)
+
+export const deleteOrder = (orderNo) =>
+  request.delete(`/orders/${orderNo}`)

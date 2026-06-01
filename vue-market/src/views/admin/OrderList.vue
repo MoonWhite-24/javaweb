@@ -25,6 +25,17 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-pagination
+        v-if="total > 0"
+        style="margin-top:20px;justify-content:flex-end"
+        v-model:current-page="pageNum"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        :total="total"
+        layout="total, prev, pager, next"
+        @current-change="fetch"
+        @size-change="fetch"
+      />
     </div>
   </AdminLayout>
 </template>
@@ -36,21 +47,29 @@ import { getAdminOrders, deleteAdminOrder } from '../../api/admin'
 import { ElMessage } from 'element-plus'
 
 const orders = ref([])
+const pageNum = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
-onMounted(async () => {
-  const { data } = await getAdminOrders({ pageNum: 1, pageSize: 50 })
-  if (data.code === 200) orders.value = data.data.list || data.data.records || []
-})
+const fetch = async () => {
+  const { data } = await getAdminOrders({ pageNum: pageNum.value, pageSize: pageSize.value })
+  if (data.code === 200) {
+    orders.value = data.data.list || data.data.records || []
+    total.value = data.data.total || 0
+  }
+}
 
 const del = async (orderNo) => {
   const { data } = await deleteAdminOrder(orderNo)
   if (data.code === 200) {
     ElMessage.success('删除成功')
-    orders.value = orders.value.filter(o => o.orderNo !== orderNo)
+    fetch()
   } else {
     ElMessage.error(data.msg || '删除失败')
   }
 }
+
+onMounted(() => fetch())
 </script>
 
 <style scoped>

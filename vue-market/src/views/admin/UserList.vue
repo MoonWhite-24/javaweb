@@ -3,8 +3,8 @@
     <div class="admin-users">
       <h2>用户管理</h2>
       <div class="toolbar">
-        <el-input v-model="keyword" placeholder="搜索用户名/手机号" clearable style="width:280px" @keyup.enter="search" @clear="search" />
-        <el-button type="primary" @click="search">搜索</el-button>
+        <el-input v-model="keyword" placeholder="搜索用户名/手机号" clearable style="width:280px" @keyup.enter="doSearch" @clear="doSearch" />
+        <el-button type="primary" @click="doSearch">搜索</el-button>
       </div>
       <el-table :data="users" border style="margin-top:16px">
         <el-table-column prop="id" label="ID" width="80" />
@@ -36,6 +36,17 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-pagination
+        v-if="total > 0"
+        style="margin-top:20px;justify-content:flex-end"
+        v-model:current-page="pageNum"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        :total="total"
+        layout="total, prev, pager, next"
+        @current-change="search"
+        @size-change="search"
+      />
     </div>
 
     <!-- User Detail Dialog -->
@@ -62,6 +73,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const users = ref([])
 const keyword = ref('')
+const pageNum = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const dialogVisible = ref(false)
 const currentUser = ref(null)
 
@@ -94,11 +108,15 @@ const banUser = async (row, status) => {
   } catch {}
 }
 
+const doSearch = () => { pageNum.value = 1; search() }
 const search = async () => {
-  const params = {}
+  const params = { pageNum: pageNum.value, pageSize: pageSize.value }
   if (keyword.value) params.keyword = keyword.value
   const { data } = await getAdminUsers(params)
-  if (data.code === 200) users.value = (data.data && data.data.list) || data.data || []
+  if (data.code === 200) {
+    users.value = (data.data && data.data.list) || data.data || []
+    total.value = (data.data && data.data.total) || 0
+  }
 }
 
 onMounted(() => search())

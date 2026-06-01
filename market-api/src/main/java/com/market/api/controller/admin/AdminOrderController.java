@@ -4,6 +4,7 @@ import com.market.common.model.PageResult;
 import com.market.common.model.R;
 import com.market.dal.entity.Order;
 import com.market.service.OrderService;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +27,17 @@ public class AdminOrderController {
 
     @GetMapping("/{orderNo}")
     public R<Order> detail(@PathVariable Long orderNo) {
-        return R.ok(orderService.getByOrderNo(orderNo));
+        Order order = orderService.getByOrderNo(orderNo);
+        if (order != null) {
+            order.setItems(orderService.getItems(orderNo));
+        }
+        return R.ok(order);
+    }
+
+    @PutMapping("/{orderNo}")
+    public R<Void> updateStatus(@PathVariable Long orderNo, @RequestBody java.util.Map<String, Integer> body) {
+        orderService.updateStatus(orderNo, body.get("status"));
+        return R.ok();
     }
 
     @DeleteMapping("/{orderNo}")

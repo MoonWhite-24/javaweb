@@ -77,16 +77,16 @@
         UPDATE `order`
         SET status = #{status},
             update_time = NOW()
-            <if test="status == 20">
+            <if test="status == 1">
                 , payment_time = NOW()
             </if>
-            <if test="status == 40">
+            <if test="status == 2">
                 , send_time = NOW()
             </if>
-            <if test="status == 50">
+            <if test="status == 4">
                 , end_time = NOW()
             </if>
-            <if test="status == -1">
+            <if test="status == 5">
                 , close_time = NOW()
             </if>
         WHERE order_no = #{orderNo}
