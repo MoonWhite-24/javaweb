@@ -61,6 +61,10 @@ public class Order {
     public LocalDateTime getUpdateTime() { return updateTime; }
     public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
 
+    private String productNames;
+    public String getProductNames() { return productNames; }
+    public void setProductNames(String productNames) { this.productNames = productNames; }
+
     private List<OrderItem> items;
     public List<OrderItem> getItems() { return items; }
     public void setItems(List<OrderItem> items) { this.items = items; }

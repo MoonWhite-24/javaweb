@@ -11,6 +11,7 @@ export const deleteAdminProduct = (id) => request.delete(`/admin/products/${id}`
 
 export const getAdminOrders = (params) => request.get('/admin/orders', { params })
 export const getAdminOrder = (orderNo) => request.get(`/admin/orders/${orderNo}`)
+export const deleteAdminOrder = (orderNo) => request.delete(`/admin/orders/${orderNo}`)
 
 export const getAdminSeckillProducts = (params) => request.get('/admin/seckill-products', { params })
 export const createAdminSeckillProduct = (p) => request.post('/admin/seckill-products', p)

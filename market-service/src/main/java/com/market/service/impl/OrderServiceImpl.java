@@ -287,4 +287,17 @@ public class OrderServiceImpl implements OrderService {
             log.error("Failed to create seckill order: orderNo={}", orderNo, e);
         }
     }
+
+    @Override
+    @Transactional
+    public void adminDelete(Long orderNo) {
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        orderItemMapper.deleteByOrderNo(orderNo);
+        orderMapper.deleteByOrderNo(orderNo);
+        log.info("Admin deleted order: orderNo={}", orderNo);
+    }
+
 }

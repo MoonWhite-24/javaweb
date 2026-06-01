@@ -28,4 +28,11 @@ public class AdminOrderController {
     public R<Order> detail(@PathVariable Long orderNo) {
         return R.ok(orderService.getByOrderNo(orderNo));
     }
+
+    @DeleteMapping("/{orderNo}")
+    public R<Void> delete(@PathVariable Long orderNo) {
+        orderService.adminDelete(orderNo);
+        return R.ok();
+    }
+
 }

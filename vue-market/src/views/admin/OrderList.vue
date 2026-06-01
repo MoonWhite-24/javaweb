@@ -4,6 +4,9 @@
       <h2>订单管理</h2>
       <el-table :data="orders" border style="margin-top:20px">
         <el-table-column prop="orderNo" label="订单号" width="180" />
+        <el-table-column prop="productNames" label="商品" min-width="200">
+          <template #default="{ row }">{{ row.productNames || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="totalPrice" label="金额">
           <template #default="{ row }">&yen;{{ (row.totalPrice || 0).toFixed(2) }}</template>
         </el-table-column>
@@ -13,9 +16,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="userId" label="用户ID" width="80" />
-        <el-table-column label="操作" width="100">
+        <el-table-column label="操作" width="160">
           <template #default="{ row }">
             <el-button size="small" @click="$router.push(`/admin/orders/${row.orderNo}`)">详情</el-button>
+            <el-popconfirm title="确定删除该订单?" @confirm="del(row.orderNo)">
+              <template #reference><el-button size="small" type="danger">删除</el-button></template>
+            </el-popconfirm>
           </template>
         </el-table-column>
       </el-table>
@@ -26,7 +32,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import AdminLayout from '../../layouts/AdminLayout.vue'
-import { getAdminOrders } from '../../api/admin'
+import { getAdminOrders, deleteAdminOrder } from '../../api/admin'
+import { ElMessage } from 'element-plus'
 
 const orders = ref([])
 
@@ -34,6 +41,16 @@ onMounted(async () => {
   const { data } = await getAdminOrders({ pageNum: 1, pageSize: 50 })
   if (data.code === 200) orders.value = data.data.list || data.data.records || []
 })
+
+const del = async (orderNo) => {
+  const { data } = await deleteAdminOrder(orderNo)
+  if (data.code === 200) {
+    ElMessage.success('删除成功')
+    orders.value = orders.value.filter(o => o.orderNo !== orderNo)
+  } else {
+    ElMessage.error(data.msg || '删除失败')
+  }
+}
 </script>
 
 <style scoped>

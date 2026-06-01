@@ -18,4 +18,5 @@ public interface OrderService {
     void processOrderCreate(Long orderNo);
     void processSeckillOrder(Long orderNo, Long userId, Long seckillProductId);
     void deleteOrder(Long orderNo, Long userId);
+    void adminDelete(Long orderNo);
 }
