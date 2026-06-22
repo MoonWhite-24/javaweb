@@ -10,9 +10,8 @@
               <el-button round class="banner-btn" @click.stop="$router.push(b.link)">{{ b.btnText }}</el-button>
             </div>
             <div class="banner-cards">
-              <div class="preview-card" v-for="p in b.products.slice(0,3)" :key="p.id">
-                <img :src="p.mainImage || ''" class="preview-img" @error="onImgError" />
-                <div class="no-img">No Image</div>
+              <div class="preview-card" v-for="p in b.products.slice(0,3)" :key="p.id" @click.stop="$router.push('/products/' + p.id)">
+                <img :src="productImage(p.mainImage)" class="preview-img" @error="usePlaceholderImage" />
                 <span class="preview-name">{{ p.name }}</span>
                 <span class="preview-price">&yen;{{ (p.price || 0).toFixed(2) }}</span>
               </div>
@@ -47,6 +46,7 @@ import DefaultLayout from '../layouts/DefaultLayout.vue'
 import ProductCard from '../components/ProductCard.vue'
 import { getSeckillProducts } from '../api/seckill'
 import { getProducts } from '../api/product'
+import { productImage, usePlaceholderImage } from '../utils/image'
 
 const banners = reactive([
   { title: '新品首发', subtitle: '最新好物限时特惠', btnText: '立即抢新', link: '/products', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', products: [] },
@@ -58,11 +58,6 @@ const banners = reactive([
 const seckillProducts = ref([])
 const hotProducts = ref([])
 
-const onImgError = (e) => {
-  e.target.style.display = 'none'
-  e.target.nextElementSibling.style.display = 'flex'
-}
-
 onMounted(async () => {
   const categoryIds = [null, 14, 13, 7]
   const fetches = categoryIds.map(cid => {
@@ -71,13 +66,26 @@ onMounted(async () => {
     return getProducts(params)
   })
 
-  const [seckillRes, hotRes, ...bannerRess] = await Promise.all([
+  const [seckillRes, hotRes, allProductsRes, ...bannerRess] = await Promise.all([
     getSeckillProducts(),
     getProducts({ orderBy: 'sales_desc', pageSize: 8 }),
+    getProducts({ pageSize: 200 }),
     ...fetches
   ])
 
-  if (seckillRes.data.code === 200) seckillProducts.value = seckillRes.data.data || []
+  const productMap = {}
+  const allList = allProductsRes.data.code === 200 ? (allProductsRes.data.data.list || allProductsRes.data.data.records || []) : []
+  allList.forEach(p => { productMap[p.id] = p })
+
+  if (seckillRes.data.code === 200) {
+    seckillProducts.value = (seckillRes.data.data || []).map(s => ({
+      ...s,
+      name: (productMap[s.productId] || {}).name || `商品#${s.productId}`,
+      price: s.seckillPrice,
+      mainImage: (productMap[s.productId] || {}).mainImage || '',
+      sales: (productMap[s.productId] || {}).sales || 0
+    }))
+  }
   if (hotRes.data.code === 200) hotProducts.value = hotRes.data.data.list || hotRes.data.data.records || []
   bannerRess.forEach((res, i) => {
     if (res.data.code === 200) banners[i].products = res.data.data.list || res.data.data.records || []
@@ -93,10 +101,9 @@ onMounted(async () => {
 .banner-btn { --el-button-bg-color: rgba(255,255,255,0.15); --el-button-border-color: rgba(255,255,255,0.3); --el-button-text-color: #fff; --el-button-hover-bg-color: rgba(255,255,255,0.3); --el-button-hover-border-color: rgba(255,255,255,0.5); }
 
 .banner-cards { flex: 1; display: flex; align-items: center; justify-content: center; gap: 24px; min-width: 0; }
-.preview-card { display: flex; flex-direction: column; align-items: center; width: 140px; height: 190px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.15); backdrop-filter: blur(6px); transition: transform 0.2s; }
+.preview-card { display: flex; flex-direction: column; align-items: center; width: 140px; height: 190px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.15); backdrop-filter: blur(6px); transition: transform 0.2s; cursor: pointer; }
 .preview-card:hover { transform: translateY(-4px); }
 .preview-img { width: 100%; height: 120px; object-fit: cover; display: block; }
-.preview-card .no-img { width: 100%; height: 120px; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.08); color: rgba(255,255,255,0.7); font-size: 13px; }
 .preview-name { font-size: 13px; color: #fff; margin-top: 6px; padding: 0 8px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .preview-price { font-size: 14px; color: #ffe0e0; font-weight: 600; margin-top: 2px; }
 

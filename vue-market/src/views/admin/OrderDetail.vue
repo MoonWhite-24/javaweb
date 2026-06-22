@@ -36,7 +36,7 @@
       <el-table v-if="order.items && order.items.length" :data="order.items" border style="width:100%">
         <el-table-column label="图片" width="80">
           <template #default="{ row }">
-            <img :src="row.productImage || ''" class="item-img" @error="e => e.target.style.display='none'" />
+            <img :src="productImage(row.productImage)" class="item-img" @error="usePlaceholderImage" />
           </template>
         </el-table-column>
         <el-table-column prop="productName" label="商品名称" />
@@ -70,6 +70,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '../../layouts/AdminLayout.vue'
 import { getAdminOrder, deleteAdminOrder, updateAdminOrderStatus } from '../../api/admin'
 import { ElMessage } from 'element-plus'
+import { productImage, usePlaceholderImage } from '../../utils/image'
 
 const route = useRoute()
 const router = useRouter()

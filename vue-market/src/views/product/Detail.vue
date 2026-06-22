@@ -3,7 +3,7 @@
     <div v-if="product" class="product-detail">
       <el-row :gutter="40">
         <el-col :sm="24" :md="10">
-          <img :src="product.mainImage || 'https://placehold.co/400x400?text=No+Image'" class="detail-img" />
+          <img :src="productImage(product.mainImage)" class="detail-img" @error="usePlaceholderImage" />
         </el-col>
         <el-col :sm="24" :md="14">
           <h1>{{ product.name }}</h1>
@@ -25,6 +25,7 @@ import DefaultLayout from '../../layouts/DefaultLayout.vue'
 import { getProductDetail } from '../../api/product'
 import { useCartStore } from '../../stores/cart'
 import { ElMessage } from 'element-plus'
+import { productImage, usePlaceholderImage } from '../../utils/image'
 
 const route = useRoute()
 const cartStore = useCartStore()
