@@ -19,4 +19,5 @@ public interface UserMapper {
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
     int updateLastLogin(@Param("id") Long id);
     int deleteById(@Param("id") Long id);
+    long countAll();
 }

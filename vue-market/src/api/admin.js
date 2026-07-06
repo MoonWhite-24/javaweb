@@ -1,6 +1,8 @@
 import request from './request'
 
 export const getStats = () => request.get('/admin/stats')
+export const getStatsTrend = (days = 7) => request.get('/admin/stats/trend', { params: { days } })
+export const getStatsOrderStatus = () => request.get('/admin/stats/order-status')
 
 export const getAdminProducts = (params) => request.get('/admin/products', { params })
 export const getAdminProduct = (id) => request.get(`/admin/products/${id}`)

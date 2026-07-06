@@ -63,4 +63,4 @@ app:
 
 logging:
   level:
-    com.market: DEBUG
+    com.market: INFO

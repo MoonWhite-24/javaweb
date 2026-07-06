@@ -182,4 +182,28 @@
         WHERE order_no = #{orderNo}
     </delete>
 
+    <select id="selectDailyStats" resultType="java.util.Map">
+        SELECT DATE(create_time) AS date, COUNT(1) AS count
+        FROM `order`
+        WHERE create_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE(create_time)
+        ORDER BY date ASC
+    </select>
+
+    <select id="selectDailyRevenue" resultType="java.util.Map">
+        SELECT DATE(create_time) AS date, COALESCE(SUM(payment), 0) AS revenue
+        FROM `order`
+        WHERE create_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+          AND payment IS NOT NULL
+        GROUP BY DATE(create_time)
+        ORDER BY date ASC
+    </select>
+
+    <select id="selectStatusDistribution" resultType="java.util.Map">
+        SELECT status, COUNT(1) AS count
+        FROM `order`
+        GROUP BY status
+        ORDER BY status ASC
+    </select>
+
 </mapper>

@@ -38,4 +38,8 @@ public interface OrderMapper {
     long countTodayNewUsers();
     long countByStatus(@Param("status") Integer status);
     int deleteByOrderNo(@Param("orderNo") Long orderNo);
+
+    List<java.util.Map<String, Object>> selectDailyStats(@Param("days") int days);
+    List<java.util.Map<String, Object>> selectDailyRevenue(@Param("days") int days);
+    List<java.util.Map<String, Object>> selectStatusDistribution();
 }

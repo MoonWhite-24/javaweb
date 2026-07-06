@@ -136,4 +136,9 @@
         DELETE FROM user WHERE id = #{id}
     </delete>
 
+    <select id="countAll" resultType="long">
+        SELECT COUNT(1)
+        FROM user
+    </select>
+
 </mapper>

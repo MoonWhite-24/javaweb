@@ -166,4 +166,10 @@
         </foreach>
     </select>
 
+    <select id="countAll" resultType="long">
+        SELECT COUNT(1)
+        FROM product
+        WHERE status != 3
+    </select>
+
 </mapper>

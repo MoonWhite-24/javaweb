@@ -26,11 +26,12 @@ public class MetricsCollector {
         double heapUsagePercent = (heapUsedMB / heapMaxMB) * 100;
         double cpuLoad = osMXBean.getSystemLoadAverage();
 
-        log.info("JVM Metrics: heap={:.1f}MB/{:.1f}MB ({:.1f}%), cpuLoad={:.2f}",
-                heapUsedMB, heapMaxMB, heapUsagePercent, cpuLoad);
+        log.info("JVM Metrics: heap={}/{}MB ({}%), cpuLoad={}",
+                String.format("%.1f", heapUsedMB), String.format("%.1f", heapMaxMB),
+                String.format("%.1f", heapUsagePercent), String.format("%.2f", cpuLoad));
 
         if (heapUsagePercent > 85) {
-            log.warn("JVM heap usage HIGH: {:.1f}%", heapUsagePercent);
+            log.warn("JVM heap usage HIGH: {}%", String.format("%.1f", heapUsagePercent));
         }
     }
 }

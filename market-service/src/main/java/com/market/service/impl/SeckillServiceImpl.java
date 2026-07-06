@@ -131,6 +131,17 @@ public class SeckillServiceImpl implements SeckillService {
 
     @Override
     public void update(SeckillProduct sp) {
+        // Auto-set status based on time range
+        if (sp.getEndTime() != null && sp.getStartTime() != null) {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            if (sp.getStartTime().isBefore(now) && sp.getEndTime().isAfter(now)) {
+                sp.setStatus(SeckillStatusEnum.ACTIVE.getCode());
+            } else if (sp.getEndTime().isBefore(now)) {
+                sp.setStatus(SeckillStatusEnum.FINISHED.getCode());
+            } else if (sp.getStartTime().isAfter(now)) {
+                sp.setStatus(SeckillStatusEnum.PENDING.getCode());
+            }
+        }
         seckillProductMapper.updateById(sp);
         initStockToRedis(sp.getId());
     }

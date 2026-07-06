@@ -24,4 +24,5 @@ public interface ProductMapper {
     List<Product> selectHot(@Param("limit") int limit);
     List<Product> selectByIds(@Param("ids") List<Long> ids);
     int deleteById(@Param("id") Long id);
+    long countAll();
 }
