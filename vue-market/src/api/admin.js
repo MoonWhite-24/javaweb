@@ -22,6 +22,10 @@ export const updateAdminSeckillProduct = (id, p) => request.put(`/admin/seckill-
 export const deleteAdminSeckillProduct = (id) => request.delete(`/admin/seckill-products/${id}`)
 
 export const getCategories = () => request.get('/categories/tree')
+export const getAdminCategoryTree = () => request.get('/admin/categories/tree')
+export const createAdminCategory = (category) => request.post('/admin/categories', category)
+export const updateAdminCategory = (id, category) => request.put(`/admin/categories/${id}`, category)
+export const deleteAdminCategory = (id) => request.delete(`/admin/categories/${id}`)
 
 export const getAdminUsers = (params) => request.get('/admin/users', { params })
 export const getAdminUser = (id) => request.get(`/admin/users/${id}`)
