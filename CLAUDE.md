@@ -36,7 +36,7 @@ Several modules use a two-level structure (e.g., `market-dal/market-dal/pom.xml`
 - **market-security** — `JwtAuthFilter` (`OncePerRequestFilter`, registered on `/api/*`), `JwtUtil`, `AdminInterceptor`, `SecurityConfig` (creates the filter bean)
 - **market-boot** — `Application.java` entry point, `application.yml`, `SnowflakeConfig`
 - **market-task** — `@Scheduled` tasks: `OrderTimeoutCancelTask`, `RedisCacheRefreshTask`, `SeckillStatusSyncTask`
-- **market-monitor** — `MetricsCollector` for monitoring
+- **market-monitor** — `MetricsCollector` for JVM monitoring (heap/CPU, logs only, no Prometheus). Has `spring-boot-starter-actuator` dependency but no metrics endpoint configured.
 
 **Request lifecycle:** `JwtAuthFilter` (checks Bearer token unless path is public — see `isPublicPath()` whitelist) → extracts `UserDTO` onto `request.setAttribute("currentUser", user)` → `AdminInterceptor` (for `/api/admin/**` routes, checks `user.role == 1`) → controller → service → mapper.
 
@@ -46,7 +46,7 @@ Several modules use a two-level structure (e.g., `market-dal/market-dal/pom.xml`
 
 **Key Redis/Valkey keys (see `RedisKeyPrefix`):** `seckill:stock:{id}`, `seckill:users:{id}` (set of userIds), `seckill:order:{userId}:{spId}` (temporary, 5min TTL). Server runs **Valkey 8.0.7** (Redis OSS drop-in replacement) at `192.168.200.100:6379`, password `Redis@2026!`, CLI: `valkey-cli`. Spring Boot still uses `spring.data.redis` config — Valkey speaks the Redis protocol.
 
-### Frontend (Vue 3, Vite 5, Element Plus 2)
+### Frontend (Vue 3, Vite 5, Element Plus 2, ECharts)
 
 **Directory layout:**
 - `api/` — Axios API modules (auth, product, cart, order, seckill, admin). `request.js` is the configured axios instance with JWT interceptor and auto-refresh logic.
@@ -55,8 +55,27 @@ Several modules use a two-level structure (e.g., `market-dal/market-dal/pom.xml`
 - `layouts/` — `DefaultLayout.vue` (public/user pages) and `AdminLayout.vue` (admin pages)
 - `stores/` — Pinia stores: `user.js`, `cart.js`, `app.js`
 - `router/` — `index.js` with route guards: `requiresAuth` checks `localStorage.accessToken`, `requiresAdmin` checks `userInfo.role === 1`
+- `utils/` — image URL helper (`image.js`): `productImage()` resolves relative paths to `192.168.200.100/images/`
 
 **Role model:** `role === 1` = admin, anything else = regular user.
+
+### Admin Management Backend (`/admin`)
+
+7 admin controllers in `market-api/.../controller/admin/`:
+
+| Controller | Path | Features |
+|-----------|------|----------|
+| AdminDashboardController | `/api/admin/stats` | 8 stat cards + 4 ECharts (order/revenue trend, status pie, top products) |
+| AdminProductController | `/api/admin/products` | CRUD + status toggle (上架/下架) |
+| AdminOrderController | `/api/admin/orders` | List/detail/status update/delete |
+| AdminUserController | `/api/admin/users` | List/search/detail/ban/unban |
+| AdminSeckillController | `/api/admin/seckill-products` | CRUD with datetime picker |
+| AdminCategoryController | `/api/admin/categories/tree` | Tree view + inline create from ProductEdit |
+| AdminStatsController | `/api/admin/stats/trend`, `/order-status` | Time-range trend (7/14/30d) + status distribution |
+
+**Data statistics** — custom SQL queries against MariaDB (not Prometheus). `StatsService` aggregates: todayOrderCount, todayRevenue, todayNewUsers, unpaidOrders, totalProducts, totalUsers, topProducts. Trend data via `OrderMapper.selectDailyStats/selectDailyRevenue`.
+
+**Security flow:** `JwtAuthFilter` → `AdminInterceptor` (checks `role == 1`) → controller. Frontend route guard: `requiresAdmin` checks `userInfo.role === 1`.
 
 ### Deployment (3-node cluster)
 
@@ -98,6 +117,11 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" -b /tmp/jenkins_cookie -H "Jenkins
 
 # 4. Check build status
 ssh root@192.168.200.100 'curl -s -u admin:admin123 "http://localhost:9090/job/market2-deploy/lastBuild/api/json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\"Build #{d[\"number\"]}: {d[\"result\"]}\")"'
+
+# 5. Verify service is running on all nodes
+for ip in 100 101 102; do
+  ssh root@192.168.200.$ip "systemctl is-active market2 && curl -s http://localhost:8080/api/health || echo 'DOWN'"
+done
 ```
 
 **SSH passwords for all 3 VMs:** root / admin  
