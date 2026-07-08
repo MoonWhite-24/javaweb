@@ -33,8 +33,22 @@
           </el-button>
         </div>
       </el-form-item>
-      <el-form-item label="主图URL">
-        <el-input v-model="form.mainImage" placeholder="请输入主图URL" />
+      <el-form-item label="商品主图">
+        <div style="display:flex;gap:16px;align-items:flex-start;width:100%">
+          <el-upload
+            class="image-uploader"
+            :show-file-list="false"
+            :http-request="handleImageUpload"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+          >
+            <img v-if="form.mainImage" :src="form.mainImage" class="uploaded-image" />
+            <el-icon v-else class="upload-placeholder"><Plus /></el-icon>
+          </el-upload>
+          <div style="flex:1">
+            <el-input v-model="form.mainImage" placeholder="或手动输入图片URL" style="margin-bottom:8px" />
+            <div style="color:#909399;font-size:12px">支持 JPG、PNG、GIF、WebP，最大 10MB</div>
+          </div>
+        </div>
       </el-form-item>
       <el-form-item label="描述">
         <el-input v-model="form.detail" type="textarea" :rows="4" placeholder="请输入商品描述" />
@@ -85,7 +99,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '../../layouts/AdminLayout.vue'
 import {
   getAdminProduct, createAdminProduct, updateAdminProduct,
-  getAdminCategoryTree, createAdminCategory
+  getAdminCategoryTree, createAdminCategory, uploadImage
 } from '../../api/admin'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -161,6 +175,25 @@ onMounted(async () => {
   }
 })
 
+const handleImageUpload = async (options) => {
+  const file = options.file
+  const isImage = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)
+  const isLt10M = file.size / 1024 / 1024 < 10
+  if (!isImage) { ElMessage.error('仅支持 JPG、PNG、GIF、WebP 格式'); return }
+  if (!isLt10M) { ElMessage.error('图片大小不能超过 10MB'); return }
+  try {
+    const { data } = await uploadImage(file)
+    if (data.code === 200) {
+      form.value.mainImage = data.data
+      ElMessage.success('图片上传成功')
+    } else {
+      ElMessage.error(data.msg || '上传失败')
+    }
+  } catch (e) {
+    ElMessage.error('上传失败，请重试')
+  }
+}
+
 const save = async () => {
   if (!form.value.name) { ElMessage.warning('请输入商品名称'); return }
   if (!form.value.categoryId) { ElMessage.warning('请选择分类'); return }
@@ -198,3 +231,31 @@ const addCategory = async () => {
   }
 }
 </script>
+
+<style scoped>
+.image-uploader :deep(.el-upload) {
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  width: 148px;
+  height: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.3s;
+}
+.image-uploader :deep(.el-upload:hover) {
+  border-color: #409eff;
+}
+.upload-placeholder {
+  font-size: 28px;
+  color: #8c939d;
+}
+.uploaded-image {
+  width: 148px;
+  height: 148px;
+  object-fit: cover;
+  display: block;
+}
+</style>

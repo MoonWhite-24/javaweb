@@ -9,7 +9,7 @@
           <h1>{{ product.name }}</h1>
           <p class="detail-price">&yen;{{ (product.price || 0).toFixed(2) }}</p>
           <p class="detail-meta">库存: {{ product.stock || 0 }} | 销量: {{ product.sales || 0 }}</p>
-          <p class="desc">{{ product.detail }}</p>
+          <div class="desc" v-html="product.detail"></div>
           <el-input-number v-model="qty" :min="1" :max="product.stock || 99" class="qty-input" />
           <el-button type="primary" size="large" @click="addToCart" :disabled="!product.stock">加入购物车</el-button>
         </el-col>

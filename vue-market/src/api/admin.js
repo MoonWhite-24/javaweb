@@ -30,3 +30,11 @@ export const deleteAdminCategory = (id) => request.delete(`/admin/categories/${i
 export const getAdminUsers = (params) => request.get('/admin/users', { params })
 export const getAdminUser = (id) => request.get(`/admin/users/${id}`)
 export const updateUserStatus = (id, status) => request.put(`/admin/users/${id}/status`, { status })
+
+export const uploadImage = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post('/admin/upload/image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
