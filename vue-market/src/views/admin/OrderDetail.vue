@@ -56,6 +56,7 @@
         <el-button v-if="order.status === 1" type="primary" @click="updateStatus(2)">标记已发货</el-button>
         <el-button v-if="order.status === 2" @click="updateStatus(4)">标记已完成</el-button>
         <el-button v-if="order.status === 0" type="danger" @click="updateStatus(5)">取消订单</el-button>
+        <el-button type="warning" @click="refreshImages">刷新商品图片</el-button>
         <el-popconfirm title="确定删除该订单?" @confirm="del">
           <template #reference><el-button type="danger" plain>删除订单</el-button></template>
         </el-popconfirm>
@@ -68,7 +69,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '../../layouts/AdminLayout.vue'
-import { getAdminOrder, deleteAdminOrder, updateAdminOrderStatus } from '../../api/admin'
+import { getAdminOrder, deleteAdminOrder, updateAdminOrderStatus, refreshOrderImages } from '../../api/admin'
 import { ElMessage } from 'element-plus'
 import { productImage, usePlaceholderImage } from '../../utils/image'
 
@@ -107,6 +108,21 @@ const del = async () => {
     router.push('/admin/orders')
   } else {
     ElMessage.error(data.msg || '删除失败')
+  }
+}
+
+const refreshImages = async () => {
+  const { data } = await refreshOrderImages(route.params.orderNo)
+  if (data.code === 200) {
+    const count = data.data
+    if (count > 0) {
+      ElMessage.success(`已更新 ${count} 个商品图片`)
+      load() // 重新加载订单数据
+    } else {
+      ElMessage.info('所有图片已是最新')
+    }
+  } else {
+    ElMessage.error(data.msg || '刷新失败')
   }
 }
 

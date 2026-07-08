@@ -307,4 +307,46 @@ public class OrderServiceImpl implements OrderService {
         log.info("Order status updated: orderNo={}, status={}", orderNo, status);
     }
 
+    @Override
+    @Transactional
+    public int refreshOrderItemImages(Long orderNo) {
+        List<OrderItem> items = orderItemMapper.selectByOrderNo(orderNo);
+        if (items == null || items.isEmpty()) {
+            return 0;
+        }
+
+        int updated = 0;
+        for (OrderItem item : items) {
+            Product product = productMapper.selectById(item.getProductId());
+            if (product != null && product.getMainImage() != null
+                    && !product.getMainImage().equals(item.getProductImage())) {
+                item.setProductImage(product.getMainImage());
+                orderItemMapper.updateProductImage(item.getId(), product.getMainImage());
+                updated++;
+            }
+        }
+
+        if (updated > 0) {
+            log.info("Refreshed order item images: orderNo={}, updated={}", orderNo, updated);
+        }
+        return updated;
+    }
+
+    @Override
+    @Transactional
+    public int refreshAllOrderItemImages() {
+        List<Long> orderNos = orderMapper.selectAllOrderNos();
+        if (orderNos == null || orderNos.isEmpty()) {
+            return 0;
+        }
+
+        int totalUpdated = 0;
+        for (Long orderNo : orderNos) {
+            totalUpdated += refreshOrderItemImages(orderNo);
+        }
+
+        log.info("Refreshed all order item images: totalOrders={}, totalUpdated={}", orderNos.size(), totalUpdated);
+        return totalUpdated;
+    }
+
 }

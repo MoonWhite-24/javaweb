@@ -99,18 +99,40 @@ public class CartServiceImpl implements CartService {
         String key = RedisKeyPrefix.CART + userId;
         Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
         List<CartItem> items = new java.util.ArrayList<>();
-        boolean needUpdate = false;
+        boolean cartModified = false;
         for (Map.Entry<Object, Object> entry : entries.entrySet()) {
             CartItem item = JsonUtil.fromJson((String) entry.getValue(), CartItem.class);
             Product product = productMapper.selectById(item.getProductId());
-            if (product != null && !product.getStock().equals(item.getStock())) {
-                item.setStock(product.getStock());
-                redisTemplate.opsForHash().put(key, entry.getKey(), JsonUtil.toJson(item));
-                needUpdate = true;
+            if (product != null) {
+                boolean itemModified = false;
+                // 同步库存
+                if (!product.getStock().equals(item.getStock())) {
+                    item.setStock(product.getStock());
+                    itemModified = true;
+                }
+                // 同步商品图片（解决更新商品图片后订单图片不一致的问题）
+                if (product.getMainImage() != null && !product.getMainImage().equals(item.getImage())) {
+                    item.setImage(product.getMainImage());
+                    itemModified = true;
+                }
+                // 同步商品名称
+                if (product.getName() != null && !product.getName().equals(item.getName())) {
+                    item.setName(product.getName());
+                    itemModified = true;
+                }
+                // 同步商品价格
+                if (product.getPrice() != null && !product.getPrice().equals(item.getPrice())) {
+                    item.setPrice(product.getPrice());
+                    itemModified = true;
+                }
+                if (itemModified) {
+                    redisTemplate.opsForHash().put(key, entry.getKey(), JsonUtil.toJson(item));
+                    cartModified = true;
+                }
             }
             items.add(item);
         }
-        if (needUpdate) {
+        if (cartModified) {
             redisTemplate.expire(key, 7, TimeUnit.DAYS);
         }
         items.sort(Comparator.comparing(CartItem::getCreateTime).reversed());

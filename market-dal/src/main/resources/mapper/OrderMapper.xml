@@ -206,4 +206,10 @@
         ORDER BY status ASC
     </select>
 
+    <select id="selectAllOrderNos" resultType="java.lang.Long">
+        SELECT order_no
+        FROM `order`
+        ORDER BY create_time DESC
+    </select>
+
 </mapper>

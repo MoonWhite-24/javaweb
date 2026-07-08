@@ -10,4 +10,5 @@ public interface OrderItemMapper {
     int batchInsert(@Param("list") List<OrderItem> items);
     List<OrderItem> selectByOrderNo(@Param("orderNo") Long orderNo);
     int deleteByOrderNo(@Param("orderNo") Long orderNo);
+    int updateProductImage(@Param("id") Long id, @Param("productImage") String productImage);
 }

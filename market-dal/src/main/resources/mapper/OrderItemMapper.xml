@@ -51,4 +51,10 @@
         WHERE order_no = #{orderNo}
     </delete>
 
+    <update id="updateProductImage">
+        UPDATE order_item
+        SET product_image = #{productImage}
+        WHERE id = #{id}
+    </update>
+
 </mapper>

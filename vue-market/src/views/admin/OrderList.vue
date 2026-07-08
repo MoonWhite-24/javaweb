@@ -25,17 +25,21 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination
-        v-if="total > 0"
-        style="margin-top:20px;justify-content:flex-end"
-        v-model:current-page="pageNum"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 50]"
-        :total="total"
-        layout="total, prev, pager, next"
-        @current-change="fetch"
-        @size-change="fetch"
-      />
+      <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center">
+        <el-button type="warning" @click="refreshAllImages" :loading="refreshing">
+          批量刷新所有订单图片
+        </el-button>
+        <el-pagination
+          v-if="total > 0"
+          v-model:current-page="pageNum"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50]"
+          :total="total"
+          layout="total, prev, pager, next"
+          @current-change="fetch"
+          @size-change="fetch"
+        />
+      </div>
     </div>
   </AdminLayout>
 </template>
@@ -43,13 +47,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import AdminLayout from '../../layouts/AdminLayout.vue'
-import { getAdminOrders, deleteAdminOrder } from '../../api/admin'
+import { getAdminOrders, deleteAdminOrder, refreshAllOrderImages } from '../../api/admin'
 import { ElMessage } from 'element-plus'
 
 const orders = ref([])
 const pageNum = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const refreshing = ref(false)
 
 const fetch = async () => {
   const { data } = await getAdminOrders({ pageNum: pageNum.value, pageSize: pageSize.value })
@@ -66,6 +71,28 @@ const del = async (orderNo) => {
     fetch()
   } else {
     ElMessage.error(data.msg || '删除失败')
+  }
+}
+
+const refreshAllImages = async () => {
+  refreshing.value = true
+  try {
+    const { data } = await refreshAllOrderImages()
+    if (data.code === 200) {
+      const totalUpdated = data.data || 0
+      if (totalUpdated > 0) {
+        ElMessage.success(`已更新 ${totalUpdated} 个商品图片`)
+        fetch() // 刷新列表
+      } else {
+        ElMessage.info('所有图片已是最新')
+      }
+    } else {
+      ElMessage.error(data.msg || '刷新失败')
+    }
+  } catch (e) {
+    ElMessage.error('刷新失败: ' + (e.message || '未知错误'))
+  } finally {
+    refreshing.value = false
   }
 }
 

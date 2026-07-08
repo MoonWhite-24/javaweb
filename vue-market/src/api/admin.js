@@ -15,6 +15,8 @@ export const getAdminOrders = (params) => request.get('/admin/orders', { params 
 export const getAdminOrder = (orderNo) => request.get(`/admin/orders/${orderNo}`)
 export const deleteAdminOrder = (orderNo) => request.delete(`/admin/orders/${orderNo}`)
 export const updateAdminOrderStatus = (orderNo, status) => request.put(`/admin/orders/${orderNo}`, { status })
+export const refreshOrderImages = (orderNo) => request.post(`/admin/orders/${orderNo}/refresh-images`)
+export const refreshAllOrderImages = () => request.post('/admin/orders/refresh-all-images')
 
 export const getAdminSeckillProducts = (params) => request.get('/admin/seckill-products', { params })
 export const createAdminSeckillProduct = (p) => request.post('/admin/seckill-products', p)

@@ -42,4 +42,6 @@ public interface OrderMapper {
     List<java.util.Map<String, Object>> selectDailyStats(@Param("days") int days);
     List<java.util.Map<String, Object>> selectDailyRevenue(@Param("days") int days);
     List<java.util.Map<String, Object>> selectStatusDistribution();
+
+    List<Long> selectAllOrderNos();
 }

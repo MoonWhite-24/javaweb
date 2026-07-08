@@ -46,4 +46,16 @@ public class AdminOrderController {
         return R.ok();
     }
 
+    @PostMapping("/{orderNo}/refresh-images")
+    public R<Integer> refreshImages(@PathVariable Long orderNo) {
+        int updated = orderService.refreshOrderItemImages(orderNo);
+        return R.ok(updated);
+    }
+
+    @PostMapping("/refresh-all-images")
+    public R<Integer> refreshAllImages() {
+        int updated = orderService.refreshAllOrderItemImages();
+        return R.ok(updated);
+    }
+
 }
